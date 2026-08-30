@@ -162,3 +162,25 @@ def clean_speech_text(text: str) -> str:
     text = re.sub(r'[，。！？；：、\s]+$', '。', text)
 
     return text.strip()
+
+if __name__ == "__main__":
+    import argparse
+    import asyncio
+    parser = argparse.ArgumentParser(description="Clean speech text and generate 3x audio.")
+    parser.add_argument("--version", action="version", version="docx-speech-briefing-builder v1.1.0")
+    parser.add_argument("--input", help="Input markdown file")
+    parser.add_argument("--output", help="Output mp3 file")
+    parser.add_argument("--rate", default="+200%", help="Speech rate")
+    args = parser.parse_args()
+
+    if args.input:
+        with open(args.input, "r", encoding="utf-8") as f:
+            raw = f.read()
+        cleaned = clean_speech_text(raw)
+        if args.output:
+            import subprocess
+            cmd = ["edge-tts", "--voice", "zh-CN-XiaoxiaoNeural", f"--rate={args.rate}", "--text", cleaned, "--write-media", args.output]
+            subprocess.run(cmd, check=True)
+            print(f"Audio saved to {args.output}")
+        else:
+            print(cleaned)

@@ -381,6 +381,7 @@ def create_docx_document(topic_title, chapter_id, markdown_content, output_path,
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description="Render Markdown to Professional Word Document.")
+    parser.add_argument("--version", action="version", version="docx-speech-briefing-builder v1.1.0")
     parser.add_argument("--title", default="工程技术报告", help="Title")
     parser.add_argument("--topic-id", default="BPVC", help="Topic ID")
     parser.add_argument("--input", required=True, help="Input markdown path")
