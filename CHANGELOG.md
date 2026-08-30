@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.1.1] - 2026-08-31
+
+### 🚀 Added & Improved
+- **Section & Outline Heading Speech Normalization**: Introduced smart outline number converter:
+  - Multi-level section headings (e.g. `1.1`, `1.2`, `2.1.3`) are now naturally spoken as **"第 1 点 1 节"**, **"第 1 点 2 节"**, etc.
+  - Top-level section & numbered lists (e.g. `1.`, `2.`) are spoken as **"第 1 点"**, **"第 2 点"**.
+  - Completely resolved the issue where `1.` was swallowed or `1.2` was incorrectly spoken as `2`.
+
+---
+
 ## [1.1.0] - 2026-08-31
 
 ### 🚀 Added

@@ -2,15 +2,16 @@
 """
 test_docx_speech_harness.py
 ===========================
-回归与自进化测试套件：
-验证 Word 渲染与 3 倍速语音清洗引擎对复杂工程文本、ASCII 边框、LaTeX 嵌套与连字符的处理能力。
+回归与自进化测试套件 (v1.1.1)：
+验证 Word 渲染与 3 倍速语音清洗引擎：
+1. 大纲标题编号发音 (1. -> 第 1 点, 1.1 -> 第 1 点 1 节, 1.2 -> 第 1 点 2 节)；
+2. 复杂工程文本、ASCII 边框行级过滤、LaTeX 嵌套与连字符消歧。
 """
 
 import os
 import sys
 import docx
 
-# 添加当前目录
 DIR = os.path.dirname(os.path.abspath(__file__))
 if DIR not in sys.path:
     sys.path.insert(0, DIR)
@@ -19,7 +20,7 @@ from clean_speech_text import clean_speech_text
 from render_docx import create_docx_document
 
 SAMPLE_MARKDOWN = """
-# ASME Sec VIII-1 UG-27 圆筒壁厚分析
+1. 项目概况与核心定位
 
 +-------------------------------------------------------------+
 |                      重要提示与设计边界                     |
@@ -27,7 +28,7 @@ SAMPLE_MARKDOWN = """
 ---------------------------------------------------------------
 ===============================================================
 
-### 【条款定位与原意】
+### 1.1 仓库基本信息
 在设计温度 150°C ~ 350°C 范围内，碳钢材料壁厚在 10-20mm 之间。
 接管厚度公差为 0.45mm，容积比为 2:1。
 
@@ -39,7 +40,7 @@ SAMPLE_MARKDOWN = """
 | S | 最大许用应力 | 138 MPa |
 | E | 焊接接头系数 | 1.00 |
 
-### 【工程审计重点】
+### 1.2 仓库结构与分发实质
 1. 检查环向应力 $\\sigma_\\theta$ 与轴向应力 $\\sigma_z$。
 2. 避免以下符号杂音污染：-------------------- ++++++++++ ========== ~~~~~~~~~
 """
@@ -49,6 +50,11 @@ def test_speech_cleaning():
     print("\n--- [TTS 清洗结果验证] ---")
     print(cleaned)
 
+    # 验证大纲与章节发音
+    assert "第 1 点 项目概况与核心定位" in cleaned or "第 1 点" in cleaned, "错误：一级大纲编号 1. 被吞或发音错误！"
+    assert "第 1 点 1 节" in cleaned, "错误：二级大纲编号 1.1 未正确转为'第 1 点 1 节'！"
+    assert "第 1 点 2 节" in cleaned, "错误：二级大纲编号 1.2 未正确转为'第 1 点 2 节'！"
+
     # 断言不包含刺耳的重复读音
     assert "至至" not in cleaned, "错误：TTS 文本中存在连续的'至'发音！"
     assert "加加" not in cleaned, "错误：TTS 文本中存在连续的'加'发音！"
@@ -56,7 +62,7 @@ def test_speech_cleaning():
     assert "+---" not in cleaned, "错误：TTS 文本中残留 ASCII 边框！"
     assert "10至20" in cleaned, "未能正确识别数值区间！"
     assert "零点四五" in cleaned, "未能正确逐位转换小数！"
-    print("\n[✓] TTS 语音清洗测试全部通过！")
+    print("\n[✓] TTS 语音清洗与大纲编号测试全部通过！")
 
 def test_docx_rendering():
     out_docx = "/tmp/test_harness_output.docx"

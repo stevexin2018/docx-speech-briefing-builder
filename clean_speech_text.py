@@ -1,14 +1,22 @@
 import re
 
+def convert_section_number(m):
+    num_str = m.group(1)
+    parts = num_str.split('.')
+    return '第 ' + ' 点 '.join(parts) + ' 节 '
+
 def clean_speech_text(text: str) -> str:
     """
-    通用语音清洗引擎：将工程 Markdown / 特殊字符转为自然流畅、高可读性的口语文本。
-    彻底杜绝 ASCII 边框线、连字符、减号被朗读为'至至至...'或'加加加...'。
+    通用语音清洗引擎 (v1.1.1)：
+    将工程 Markdown / 特殊字符转为自然流畅、高可读性的口语文本。
+    - 精准识别大纲标题编号 (1. -> 第 1 点, 1.1 -> 第 1 点 1 节, 1.2 -> 第 1 点 2 节)；
+    - 彻底杜绝 ASCII 边框线、连字符误读为'至至至...'或'加加加...'；
+    - 保持小数点逐位精准发音 (0.45 -> 零点四五)。
     """
     if not text:
         return ""
 
-    # 1. 预处理：行级过滤，彻底剥离 ASCII 边框线、分割线、Markdown 伪表格线
+    # 1. 预处理：行级过滤与大纲编号转换
     lines = text.split("\n")
     cleaned_lines = []
     
@@ -18,15 +26,20 @@ def clean_speech_text(text: str) -> str:
             continue
             
         # 过滤掉纯符号构成的分割线、装饰线、ASCII 表格边框等 (+----+----+ 或 -------------- 或 ======)
-        if re.match(r'^[\-+_=\*~#|`\s]{2,}$', l):
+        if re.match(r'^[-+_=\*~#|`\s]{2,}$', l):
             continue
         # 过滤 Markdown 表格对齐分割线: |:---|:---|
         if re.match(r'^\|[\s:\-\+\|=]+\|$', l):
             continue
 
-        # 移除 Markdown 标题符 (#, ##, ### 等) 与引用/列表前缀
+        # 移除 Markdown 标题符 (#, ##, ### 等) 与引用/无序列表前缀 (-, *, +)
         l = re.sub(r'^[#>\*\-\+]+\s*', '', l)
-        l = re.sub(r'^\d+[\.\)]\s*', '', l)
+
+        # 核心优化：大纲与章节编号口语化转换（杜绝 1. 被吞或 1.2 读成 2）
+        # 1.1 多级大纲编号 (如 1.1, 1.2, 2.1.3)
+        l = re.sub(r'^(\d+(?:\.\d+)+)\s*', convert_section_number, l)
+        # 1.2 顶级大纲/有序列表 (如 1., 2., 1、, 1))
+        l = re.sub(r'^(\d+)[\.、\)]\s*', r'第 \1 点 ', l)
 
         # 移除纯外框的 | 符号 (如 ASCII 框里的 | 文字 |)
         l = re.sub(r'^\|\s*', '', l)
@@ -112,7 +125,7 @@ def clean_speech_text(text: str) -> str:
     text = re.sub(r'(\d+(?:\.\d+)?)\s*(?:℃|°C|\^\s*\\circ\s*\\text\{C\}|\^\s*\\circ\s*C|\\degree\s*C)', r'\1 摄氏度 ', text)
     text = re.sub(r'(\d+(?:\.\d+)?)\s*(?:°F|\^\s*\\circ\s*\\text\{F\}|\^\s*\\circ\s*F|\\degree\s*F)', r'\1 华氏度 ', text)
 
-    # 8. 小数点逐位发音
+    # 8. 小数点逐位发音 (如 0.45 -> 零点四五)
     digit_map = {'0':'零', '1':'一', '2':'二', '3':'三', '4':'四', '5':'五', '6':'六', '7':'七', '8':'八', '9':'九'}
     def fix_decimal_speech(m):
         int_p = m.group(1)
@@ -165,9 +178,8 @@ def clean_speech_text(text: str) -> str:
 
 if __name__ == "__main__":
     import argparse
-    import asyncio
     parser = argparse.ArgumentParser(description="Clean speech text and generate 3x audio.")
-    parser.add_argument("--version", action="version", version="docx-speech-briefing-builder v1.1.0")
+    parser.add_argument("--version", action="version", version="docx-speech-briefing-builder v1.1.1")
     parser.add_argument("--input", help="Input markdown file")
     parser.add_argument("--output", help="Output mp3 file")
     parser.add_argument("--rate", default="+200%", help="Speech rate")
