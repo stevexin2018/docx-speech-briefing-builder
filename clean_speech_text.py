@@ -7,11 +7,13 @@ def convert_section_number(m):
 
 def clean_speech_text(text: str) -> str:
     """
-    通用语音清洗引擎 (v1.1.1)：
+    通用语音清洗引擎 (v1.2.1)：
     将工程 Markdown / 特殊字符转为自然流畅、高可读性的口语文本。
+    - 精准保留数学与工程运算符号（除以、大于、小于、大于等于、小于等于、等于、不等于）；
+    - 智能识别标准条款并列（Part 5.2.4/5.4.3 -> Part 5点2点4 5点4点3，UG-28/UG-29 -> UG-28 UG-29，省略斜杠）；
     - 精准识别大纲标题编号 (1. -> 第 1 点, 1.1 -> 第 1 点 1 节, 1.2 -> 第 1 点 2 节)；
-    - 彻底杜绝 ASCII 边框线、连字符误读为'至至至...'或'加加加...'；
-    - 保持小数点逐位精准发音 (0.45 -> 零点四五)。
+    - 保持小数点逐位精准发音 (0.45 -> 零点四五) 与多级章节编号发音；
+    - 彻底杜绝 ASCII 边框线、连字符误读。
     """
     if not text:
         return ""
@@ -29,30 +31,22 @@ def clean_speech_text(text: str) -> str:
         if re.match(r'^[-+_=\*~#|`\s]{2,}$', l):
             continue
         # 过滤 Markdown 表格对齐分割线: |:---|:---|
-        if re.match(r'^\|[\s:\-\+\|=]+\|$', l):
+        if re.match(r'^\|[\s:\-\+\\|=]+\|$', l):
             continue
 
         # 移除 Markdown 标题符 (#, ##, ### 等) 与引用/无序列表前缀 (-, *, +)
-        l = re.sub(r'^[#>\*\-\+]+\s*', '', l)
+        l = re.sub(r'^[#>*\-+]+[ \t]*', '', l)
 
-        # 核心优化：大纲与章节编号口语化转换（杜绝 1. 被吞或 1.2 读成 2）
+        # 大纲与章节编号口语化转换（杜绝 1. 被吞或 1.2 读成 2）
         # 1.1 多级大纲编号 (如 1.1, 1.2, 2.1.3)
-        l = re.sub(r'^(\d+(?:\.\d+)+)\s*', convert_section_number, l)
+        l = re.sub(r'^(\d+(?:\.\d+)+)[ \t]*', convert_section_number, l)
         # 1.2 顶级大纲/有序列表 (如 1., 2., 1、, 1))
-        l = re.sub(r'^(\d+)[\.、\)]\s*', r'第 \1 点 ', l)
+        l = re.sub(r'^(\d+)[.、\)][ \t]*', r'第 \1 点 ', l)
 
         # 移除纯外框的 | 符号 (如 ASCII 框里的 | 文字 |)
-        l = re.sub(r'^\|\s*', '', l)
-        l = re.sub(r'\s*\|$', '', l)
+        l = re.sub(r'^\|[ \t]*', '', l)
+        l = re.sub(r'[ \t]*\|$', '', l)
 
-        # 优化标准与条款口语发音
-        l = re.sub(r'Sec\s+VIII-1', 'Sec VIII 第 1 卷', l, flags=re.IGNORECASE)
-        l = re.sub(r'UG-(\d+)', r'U G 第 \1 条', l)
-        l = re.sub(r'UW-(\d+)', r'U W 第 \1 条', l)
-        l = re.sub(r'UCS-(\d+)', r'U C S 第 \1 条', l)
-        l = re.sub(r'UHA-(\d+)', r'U H A 第 \1 条', l)
-        l = re.sub(r'QW-(\d+)', r'Q W 第 \1 条', l)
-        
         # 确保每个独立段落/列表项末尾有明确标点，在 TTS 中产生自然停顿
         if not l.endswith(("。", "！", "？", "；", "：")):
             l += "。"
@@ -71,21 +65,47 @@ def clean_speech_text(text: str) -> str:
     # 3. 彻底消除连续重复的无意义符号（防止触发重复发音）
     text = re.sub(r'[\-+_=~*#|]{2,}', ' ', text)
 
-    # 4. 精准范围与比例转换（只有在数字之间时才转为“至”或“比”）
-    # 4.1 百分比范围: 10%~20% 或 10%-20%
-    text = re.sub(r'(\d+(?:\.\d+)?)%\s*[~～\-至]\s*(\d+(?:\.\d+)?)%', r'百分之\1至百分之\2', text)
-    text = re.sub(r'(\d+(?:\.\d+)?)%', r'百分之\1', text)
-    # 4.2 数值范围: 10~20 或 10-20 (排除负数情况，要求两边都是数字)
-    text = re.sub(r'(\d+(?:\.\d+)?)\s*[~～\-]\s*(\d+(?:\.\d+)?)', r'\1至\2', text)
-    # 4.3 比例 2:1 -> 2 比 1
-    text = re.sub(r'(\d+)\s*:\s*(\d+)', r'\1 比 \2', text)
+    # 4. 【关键】条款/章节/标准并列中的斜杠口语化省略（在除法识别前执行，不读“除以”，也不读“斜杠”）
+    # 4.1 复合条款名并列 (如 UG-28/UG-29, UW-11/UW-12, VIII-1/VIII-2)
+    text = re.sub(r'([A-Za-z]+-[\d\w]+)\s*/\s*([A-Za-z]+-[\d\w]+)', r'\1 \2', text)
+    # 4.2 Part X/Part Y 或 Clause X/Clause Y
+    text = re.sub(r'((?:Part|Clause|Section|Table|Fig|Figure)\s*[\w\.]+)\s*/\s*((?:Part|Clause|Section|Table|Fig|Figure)?\s*[\w\.]+)', r'\1 \2', text, flags=re.IGNORECASE)
+    # 4.3 多级章节编号并列 (如 5.2.4/5.4.3 或 4.1.2/4.1.3)
+    text = re.sub(r'(\b\d+(?:\.\d+)+\b)\s*/\s*(\b\d+(?:\.\d+)+\b)', r'\1 \2', text)
+    # 4.4 中文条款并列 (如 第 28 条/第 29 条)
+    text = re.sub(r'(第\s*\d+\s*条)\s*/\s*(第\s*\d+\s*条)', r'\1 \2', text)
 
-    # 5. 特定复杂公式口语化
-    text = text.replace(r't = \frac{P \cdot R}{S \cdot E - 0.6P}', 't 等于 P 乘以 R 除以 S 乘以 E 减去 0.6 倍 P')
-    text = text.replace(r't = \frac{P \cdot D}{2S \cdot E - 0.2P}', 't 等于 P 乘以 D 除以 2 倍 S 乘以 E 减去 0.2 倍 P')
-    text = text.replace(r't = \frac{P \cdot L \cdot M}{2S \cdot E - 0.2P}', 't 等于 P 乘以 L 乘以 M 除以 2 倍 S 乘以 E 减去 0.2 倍 P')
+    # 5. 标准与条款口语发音
+    text = re.sub(r'Sec\s+VIII-1', 'Sec VIII 第 1 卷', text, flags=re.IGNORECASE)
+    text = re.sub(r'UG-(\d+)', r'U G 第 \1 条', text)
+    text = re.sub(r'UW-(\d+)', r'U W 第 \1 条', text)
+    text = re.sub(r'UCS-(\d+)', r'U C S 第 \1 条', text)
+    text = re.sub(r'UHA-(\d+)', r'U H A 第 \1 条', text)
+    text = re.sub(r'QW-(\d+)', r'Q W 第 \1 条', text)
 
-    # 希腊字母口语化
+    # 6. 多级章节编号口语化 (如 5.2.4 -> 5 点 2 点 4)
+    def convert_multi_dot(m):
+        parts = m.group(0).split('.')
+        return ' 点 '.join(parts)
+    text = re.sub(r'\b\d+(?:\.\d+){2,}\b', convert_multi_dot, text)
+
+    # 7. 小数点逐位发音 (如 0.385 -> 零点三八五)
+    digit_map = {'0':'零', '1':'一', '2':'二', '3':'三', '4':'四', '5':'五', '6':'六', '7':'七', '8':'八', '9':'九'}
+    def fix_decimal_speech(m):
+        int_p = m.group(1)
+        dec_p = m.group(2)
+        int_str = '零' if int_p == '0' else int_p
+        dec_str = ''.join(digit_map.get(d, d) for d in dec_p)
+        return f'{int_str}点{dec_str}'
+    text = re.sub(r'(\d+)\.(\d+)', fix_decimal_speech, text)
+
+    # 8. 比例与范围 (2:1 -> 2 比 1, 10-20mm -> 10至20毫米)
+    text = re.sub(r'(\d+(?:点[\w]+)?)\s*[:比]\s*(\d+(?:点[\w]+)?)', r'\1 比 \2', text)
+    text = re.sub(r'(\d+(?:点[\w]+)?)%\s*[~～\-至]\s*(\d+(?:点[\w]+)?)%', r'百分之\1至百分之\2', text)
+    text = re.sub(r'(\d+(?:点[\w]+)?)\s*[~～\-至]\s*(\d+(?:点[\w]+)?)', r'\1至\2', text)
+    text = re.sub(r'(\d+(?:点[\w]+)?)%', r'百分之\1', text)
+
+    # 9. 希腊字母口语化
     greek_tts_map = {
         r'\alpha': ' 阿尔法 ', r'\beta': ' 贝塔 ', r'\gamma': ' 伽马 ', r'\Gamma': ' 伽马 ',
         r'\delta': ' 德尔塔 ', r'\Delta': ' 德尔塔 ', r'\epsilon': ' 艾普西隆 ', r'\varepsilon': ' 艾普西隆 ',
@@ -112,7 +132,24 @@ def clean_speech_text(text: str) -> str:
         else:
             text = text.replace(k, v)
 
-    # 6. LaTeX 结构与函数
+    # 10. 比较与运算符号口语化（精准保留 大于、小于、大于等于、小于等于、等于、不等于、除以、乘以）
+    # 10.1 比较符
+    text = re.sub(r'\\ge\b|\\geq\b|>=|≥', ' 大于等于 ', text)
+    text = re.sub(r'\\le\b|\\leq\b|<=|≤', ' 小于等于 ', text)
+    text = re.sub(r'!=|≠|\\ne\b|\\neq\b', ' 不等于 ', text)
+    text = re.sub(r'>', ' 大于 ', text)
+    text = re.sub(r'<', ' 小于 ', text)
+    text = re.sub(r'==|(?<=\w)\s*=\s*(?=\w)|(?<=\s)=\s*(?=\s)', ' 等于 ', text)
+
+    # 10.2 乘除法与加减
+    text = re.sub(r'\\times\b|×|\\cdot\b|·', ' 乘以 ', text)
+    text = re.sub(r'\\pm\b|±', ' 正负 ', text)
+    # 除法/比值: 凡是在英文、数字、下标花括号之间的 / 均读作 除以
+    text = re.sub(r'([A-Za-z0-9_\}]+)\s*/\s*([A-Za-z0-9_\{]+)', r'\1 除以 \2', text)
+    # 加号
+    text = re.sub(r'(?<=\w)\s*\+\s*(?=\w)', ' 加上 ', text)
+
+    # 11. LaTeX 结构与函数
     text = re.sub(r'\\sqrt\{\\frac\{([^{}]+)\}\{([^{}]+)\}\}', r'根号下 \1 除以 \2', text)
     text = re.sub(r'\\sqrt\{([^{}]+)\}', r'根号下 \1', text)
     text = re.sub(r'\\left\(|\\right\)', '', text)
@@ -120,38 +157,13 @@ def clean_speech_text(text: str) -> str:
     text = re.sub(r'\\frac\{([^{}]+)\}\{([^{}]+)\}', r'\1 除以 \2', text)
     text = re.sub(r'\\Delta\s*t_\{?thin\}?|\\Delta\s*t_{\\text\{thin\}}', '冲压减薄裕量', text)
     text = re.sub(r'\\text\{([^{}]+)\}', r'\1', text)
-
-    # 7. 温标识别
-    text = re.sub(r'(\d+(?:\.\d+)?)\s*(?:℃|°C|\^\s*\\circ\s*\\text\{C\}|\^\s*\\circ\s*C|\\degree\s*C)', r'\1 摄氏度 ', text)
-    text = re.sub(r'(\d+(?:\.\d+)?)\s*(?:°F|\^\s*\\circ\s*\\text\{F\}|\^\s*\\circ\s*F|\\degree\s*F)', r'\1 华氏度 ', text)
-
-    # 8. 小数点逐位发音 (如 0.45 -> 零点四五)
-    digit_map = {'0':'零', '1':'一', '2':'二', '3':'三', '4':'四', '5':'五', '6':'六', '7':'七', '8':'八', '9':'九'}
-    def fix_decimal_speech(m):
-        int_p = m.group(1)
-        dec_p = m.group(2)
-        int_str = '零' if int_p == '0' else int_p
-        dec_str = ''.join(digit_map.get(d, d) for d in dec_p)
-        return f'{int_str}点{dec_str}'
-    
-    text = re.sub(r'(\d+)\.(\d+)', fix_decimal_speech, text)
-
-    # 9. 运算与比较符号
-    text = re.sub(r'\\le\b|\\leq\b|≤', ' 小于等于 ', text)
-    text = re.sub(r'\\ge\b|\\geq\b|≥', ' 大于等于 ', text)
-    text = re.sub(r'\\times\b|×', ' 乘以 ', text)
-    text = re.sub(r'\\cdot\b|·', ' 乘以 ', text)
-    text = re.sub(r'\\pm\b|±', ' 正负 ', text)
-    text = text.replace('=', ' 等于 ')
-    # 只有当 + 位于变量或数字之间时替换为加上，单独的 + 消除
-    text = re.sub(r'(?<=\w)\s*\+\s*(?=\w)', ' 加上 ', text)
-    text = text.replace('+', ' ')
-
-    # 剥离 LaTeX 的 $ 标记
     text = re.sub(r'\$([^$]+)\$', r'\1', text)
-    text = text.replace('$', '')
 
-    # 10. 单位与工程缩写
+    # 12. 温标识别
+    text = re.sub(r'(\d+(?:点[\w]+)?)\s*(?:℃|°C|\^\s*\\circ\s*\\text\{C\}|\^\s*\\circ\s*C|\\degree\s*C)', r'\1 摄氏度 ', text)
+    text = re.sub(r'(\d+(?:点[\w]+)?)\s*(?:°F|\^\s*\\circ\s*\\text\{F\}|\^\s*\\circ\s*F|\\degree\s*F)', r'\1 华氏度 ', text)
+
+    # 13. 单位与工程缩写
     text = text.replace('ASME', 'A S M E ')
     text = text.replace('Appendix', '附录')
     text = text.replace('MPa', ' 兆帕 ')
@@ -162,13 +174,11 @@ def clean_speech_text(text: str) -> str:
     text = text.replace('RT4', ' R T 4 ')
     text = text.replace('RT', ' R T 无损检测 ')
 
-    # 11. 终极符号清洗：清除孤立的符号、括号、反斜杠、多余标点
-    text = re.sub(r'[`\*•~_#|\+\-\\\/]', ' ', text)
-    text = re.sub(r'[\'\"\(\)\[\]\{\}\<\>]', ' ', text)
-    # 只保留汉字、英文字母、数字和核心中文标点
+    # 14. 清理孤立无用符号（保留汉字、英文字母、数字和核心中文标点）
+    text = re.sub(r'[`\*•~_#|\\\'\"<>\(\)\[\]\{\}]', ' ', text)
     text = re.sub(r'[^\w\s\u4e00-\u9fa5，。！？；：、]', ' ', text)
     
-    # 清理多余空格与重复标点
+    # 15. 空格与标点修剪
     text = re.sub(r'\s+', ' ', text)
     text = re.sub(r'([，。！？；：、])\s*([，。！？；：、])+', r'\1', text)
     text = re.sub(r'^[，。！？；：、\s]+', '', text)
@@ -179,7 +189,7 @@ def clean_speech_text(text: str) -> str:
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description="Clean speech text and generate 3x audio.")
-    parser.add_argument("--version", action="version", version="docx-speech-briefing-builder v1.1.1")
+    parser.add_argument("--version", action="version", version="docx-speech-briefing-builder v1.2.1")
     parser.add_argument("--input", help="Input markdown file")
     parser.add_argument("--output", help="Output mp3 file")
     parser.add_argument("--rate", default="+200%", help="Speech rate")

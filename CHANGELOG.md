@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.2.1] - 2026-08-31
+
+### 🚀 Added & Improved
+- **Math & Engineering Operator Spoken Restoration**:
+  - Formulas and ratios (e.g. `D/t > 80`, `P/S <= 0.385`, `R/t >= 10`, `tn/t != 1.0`) now strictly preserve spoken math operators (**"除以"**, **"大于"**, **"小于"**, **"大于等于"**, **"小于等于"**, **"等于"**, **"不等于"**).
+  - Resolved previous issue where `/` and comparison operators were stripped into whitespace/swallowed.
+- **Standards & Chapter Slash Natural Ellipsis**:
+  - Slashes in standard clauses and multi-level sections (e.g. `Part 5.2.4/5.4.3`, `UG-28/UG-29`, `Section VIII-1/VIII-2`) are intelligently recognized as parallel citations and converted into natural pauses without reading "除以" or "斜杠".
+
+---
+
 ## [1.1.1] - 2026-08-31
 
 ### 🚀 Added & Improved
