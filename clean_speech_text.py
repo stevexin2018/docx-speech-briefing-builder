@@ -1,4 +1,54 @@
+#!/usr/bin/env python3
+"""
+clean_speech_text.py
+====================
+语音口语化转换清洗器：
+将工程 Markdown / 特殊字符转为自然流畅、高可读性的口语文本。
+- 精准保留数学与工程运算符号（除以、大于、小于、大于等于、小于等于、等于、不等于）；
+- 智能区分工程分式（如 1/4 -> 四分之一, 1 1/4 -> 一又四分之一）、工程单位（kJ/mm -> 千焦每毫米）与条款并列斜杠；
+- 精准识别大纲标题编号 (1. -> 第 1 点, 1.1 -> 第 1 点 1 节, 1.2 -> 第 1 点 2 节)；
+- 保持小数点逐位精准发音 (0.45 -> 零点四五) 与多级章节编号发音；
+- 保留小数区间语义 (1.5 ～ 2.0 -> 1点五至2点零)；
+- 彻底杜绝 ASCII 边框线、连字符误读。
+"""
+
 import re
+import os
+import sys
+
+_BS = '\\\\'
+
+CN_NUMS = {
+    0: '零', 1: '一', 2: '二', 3: '三', 4: '四', 5: '五',
+    6: '六', 7: '七', 8: '八', 9: '九', 10: '十'
+}
+
+def int_to_cn(n: int) -> str:
+    if n in CN_NUMS:
+        return CN_NUMS[n]
+    if n < 20:
+        return '十' + CN_NUMS.get(n % 10, str(n % 10))
+    if n < 100:
+        tens = n // 10
+        rem = n % 10
+        return (CN_NUMS.get(tens, str(tens)) if tens > 1 else '') + '十' + (CN_NUMS.get(rem, '') if rem > 0 else '')
+    return str(n)
+
+def convert_mixed_fraction(m):
+    whole = int(m.group(1))
+    num = int(m.group(2))
+    den = int(m.group(3))
+    whole_cn = int_to_cn(whole)
+    den_cn = int_to_cn(den)
+    num_cn = int_to_cn(num)
+    return f" {whole_cn}又{den_cn}分之{num_cn} "
+
+def convert_simple_fraction(m):
+    num = int(m.group(1))
+    den = int(m.group(2))
+    den_cn = int_to_cn(den)
+    num_cn = int_to_cn(num)
+    return f" {den_cn}分之{num_cn} "
 
 def convert_section_number(m):
     num_str = m.group(1)
@@ -7,14 +57,8 @@ def convert_section_number(m):
 
 def clean_speech_text(text: str) -> str:
     """
-    通用语音清洗引擎 (v1.2.2)：
+    通用语音清洗引擎 (v1.2.3)：
     将工程 Markdown / 特殊字符转为自然流畅、高可读性的口语文本。
-    - 精准保留数学与工程运算符号（除以、大于、小于、大于等于、小于等于、等于、不等于）；
-    - 智能区分公式除法、工程单位与标准条款并列斜杠；
-    - 精准识别大纲标题编号 (1. -> 第 1 点, 1.1 -> 第 1 点 1 节, 1.2 -> 第 1 点 2 节)；
-    - 保持小数点逐位精准发音 (0.45 -> 零点四五) 与多级章节编号发音；
-    - 保留小数区间语义 (1.5 ～ 2.0 -> 1点五至2点零)；
-    - 彻底杜绝 ASCII 边框线、连字符误读。
     """
     if not text:
         return ""
@@ -32,15 +76,15 @@ def clean_speech_text(text: str) -> str:
         if re.match(r'^[-+_=\*~#|`\s]{2,}$', l):
             continue
         # 过滤 Markdown 表格对齐分割线: |:---|:---|
-        if re.match(r'^\|[\s:\-\+\\|=]+\|$', l):
+        if re.match(r'^\|[\s:\-\+\\\\|=]+\|$', l):
             continue
 
         # 移除 Markdown 标题符 (#, ##, ### 等) 与引用/无序列表前缀 (-, *, +)
-        l = re.sub(r'^[#>*\-+]+[ \t]*', '', l)
+        # 注意：避免误吞以正负温标开头的行（如 +5°C 或 -20°C）
+        l = re.sub(r'^[#>*+\-]+[ \t]+(?!\d)|^[#>]+[ \t]*', '', l)
 
         # 大纲与章节编号口语化转换（杜绝 1. 被吞或 1.2 读成 2）
         # 1.1 多级大纲编号 (如 1.1, 1.2, 2.1.3)
-        # 必须有编号后的空白及标题正文；避免把行首小数区间“1.5 ～ 2.0”误判为章节标题。
         l = re.sub(r'^(\d+(?:\.\d+)+)[ \t]+(?![~～\-至])(?=\S)', convert_section_number, l)
         # 1.2 顶级大纲/有序列表 (如 1., 2., 1、, 1))
         l = re.sub(r'^(\d+)(?:[、\)]|\.(?!\d))[ \t]*', r'第 \1 点 ', l)
@@ -66,6 +110,12 @@ def clean_speech_text(text: str) -> str:
 
     # 3. 彻底消除连续重复的无意义符号（防止触发重复发音）
     text = re.sub(r'[\-+_=~*#|]{2,}', ' ', text)
+
+    # 3.1 温度与度数 LaTeX / 简写符号预修复 (如 +5^\circ\text{C}, 5^\circ C, +5^ 环境下 -> +5°C)
+    text = re.sub(r'(?:\^|\^\{|\{)?' + _BS + r'(?:circ|degree)(?:\})?\s*(?:' + _BS + r'(?:text|mathrm)?\{?([CFcf])\}?|([CFcf]))', r'°\1\2', text)
+    text = re.sub(r'(?:\^|\^\{|\{)?' + _BS + r'(?:circ|degree)(?:\})?', '°', text)
+    text = re.sub(r'([+\-]?\d+(?:\.\d+)?)\^(?=[ \t]*[CFcf]\b)', r'\1°', text)
+    text = re.sub(r'([+\-]?\d+(?:\.\d+)?)\^(?=[ \t]*[\u4e00-\u9fa5（\(\)，。！？；：`\'"]|$)', r'\1°C', text)
 
     # 4. 【关键】条款、标识符与单位中的斜杠消歧（在除法识别前执行）
     # 4.1 复合条款名并列，支持小数级条款号
@@ -112,7 +162,12 @@ def clean_speech_text(text: str) -> str:
         return f'{int_str}点{dec_str}'
     text = re.sub(r'(\d+)\.(\d+)', fix_decimal_speech, text)
 
-    # 8. 比例与范围 (2:1 -> 2 比 1, 10-20mm -> 10至20毫米)
+    # 8. 工程分式、带分数、比例与范围
+    # 8.1 带分数 (如 1 1/4, 2 1/2, 1-1/4, 2-1/2, 3 3/8 -> 一又四分之一, 二又二分之一)
+    text = re.sub(r'(?<![A-Za-z0-9.])(\d+)[ \t\-]+(\d+)\s*/\s*(\d+)(?![A-Za-z0-9.])', convert_mixed_fraction, text)
+    # 8.2 纯数字真/假分数 (如 1/4, 1/2, 3/4, 3/8, 5/16, 11/16 -> 四分之一, 二分之一)
+    text = re.sub(r'(?<![A-Za-z0-9./])(\d{1,3})\s*/\s*(\d{1,3})(?![A-Za-z0-9./])', convert_simple_fraction, text)
+    # 8.3 比例与范围 (2:1 -> 2 比 1, 10-20mm -> 10至20毫米)
     text = re.sub(r'(\d+(?:点[\w]+)?)\s*[:比]\s*(\d+(?:点[\w]+)?)', r'\1 比 \2', text)
     text = re.sub(r'(\d+(?:点[\w]+)?)%\s*[~～\-至]\s*(\d+(?:点[\w]+)?)%', r'百分之\1至百分之\2', text)
     text = re.sub(r'(\d+(?:点[\w]+)?)\s*[~～\-至]\s*(\d+(?:点[\w]+)?)', r'\1至\2', text)
@@ -140,7 +195,7 @@ def clean_speech_text(text: str) -> str:
         'ω': ' 欧米伽 ', 'Ω': ' 欧米伽 '
     }
     for k, v in greek_tts_map.items():
-        if k.startswith('\\'):
+        if k.startswith('\\\\'):
             text = re.sub(re.escape(k) + r'\b', v, text)
         else:
             text = text.replace(k, v)
@@ -152,15 +207,16 @@ def clean_speech_text(text: str) -> str:
     text = re.sub(r'!=|≠|\\ne\b|\\neq\b', ' 不等于 ', text)
     text = re.sub(r'>', ' 大于 ', text)
     text = re.sub(r'<', ' 小于 ', text)
-    text = re.sub(r'==|(?<=\w)\s*=\s*(?=\w)|(?<=\s)=\s*(?=\s)', ' 等于 ', text)
+    text = re.sub(r'==|(?<=[A-Za-z0-9])\s*=\s*(?=[A-Za-z0-9])|(?<=\s)=\s*(?=\s)', ' 等于 ', text)
 
     # 10.2 乘除法与加减
     text = re.sub(r'\\times\b|×|\\cdot\b|·', ' 乘以 ', text)
     text = re.sub(r'\\pm\b|±', ' 正负 ', text)
-    # 除法/比值: 凡是在英文、数字、下标花括号之间的 / 均读作 除以
+    # 除法/比值: 凡是在英文、数字、下标花括号之间的 / 均读作 除以 (如 D/t, P/S, a/b)
     text = re.sub(r'([A-Za-z0-9_\}]+)\s*/\s*([A-Za-z0-9_\{]+)', r'\1 除以 \2', text)
-    # 加号
-    text = re.sub(r'(?<=\w)\s*\+\s*(?=\w)', ' 加上 ', text)
+    # 加减符号: 变量/数字间转为“加上”，前置正负号转为“正/负”
+    text = re.sub(r'(?<=[A-Za-z0-9])\s*\+\s*(?=[A-Za-z0-9])', ' 加上 ', text)
+    text = re.sub(r'(?<![A-Za-z0-9])\+\s*(?=\d)', '正 ', text)
 
     # 11. LaTeX 结构与函数
     text = re.sub(r'\\sqrt\{\\frac\{([^{}]+)\}\{([^{}]+)\}\}', r'根号下 \1 除以 \2', text)
@@ -172,9 +228,9 @@ def clean_speech_text(text: str) -> str:
     text = re.sub(r'\\text\{([^{}]+)\}', r'\1', text)
     text = re.sub(r'\$([^$]+)\$', r'\1', text)
 
-    # 12. 温标识别
-    text = re.sub(r'(\d+(?:点[\w]+)?)\s*(?:℃|°C|\^\s*\\circ\s*\\text\{C\}|\^\s*\\circ\s*C|\\degree\s*C)', r'\1 摄氏度 ', text)
-    text = re.sub(r'(\d+(?:点[\w]+)?)\s*(?:°F|\^\s*\\circ\s*\\text\{F\}|\^\s*\\circ\s*F|\\degree\s*F)', r'\1 华氏度 ', text)
+    # 12. 温标识别 (如 150 摄氏度, +5 摄氏度, -20 摄氏度)
+    text = re.sub(r'(正\s*\d+|[+\\-]?\d+(?:点[\w]+)?)\s*(?:℃|°C|\^\s*\\circ\s*\\text\{C\}|\^\s*\\circ\s*C|\\degree\s*C)', r'\1 摄氏度 ', text)
+    text = re.sub(r'(正\s*\d+|[+\\-]?\d+(?:点[\w]+)?)\s*(?:°F|\^\s*\\circ\s*\\text\{F\}|\^\s*\\circ\s*F|\\degree\s*F)', r'\1 华氏度 ', text)
 
     # 13. 单位与工程缩写
     text = text.replace('ASME', 'A S M E ')
@@ -203,7 +259,7 @@ def clean_speech_text(text: str) -> str:
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description="Clean speech text and generate 3x audio.")
-    parser.add_argument("--version", action="version", version="docx-speech-briefing-builder v1.2.2")
+    parser.add_argument("--version", action="version", version="docx-speech-briefing-builder v1.2.3")
     parser.add_argument("--input", help="Input markdown file")
     parser.add_argument("--output", help="Output mp3 file")
     parser.add_argument("--rate", default="+200%", help="Speech rate")

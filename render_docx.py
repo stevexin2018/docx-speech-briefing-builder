@@ -59,11 +59,17 @@ def clean_inline_text(text):
     if not text:
         return ""
 
-    # Phase 0: 剥离数学定界符
+    # Phase 0: 剥离数学定界符与温度/角度符号规范化
     text = re.sub(r'\$\$([^$]+)\$\$', r'\1', text)
     text = re.sub(r'\$([^$]+)\$', r'\1', text)
     text = re.sub(r'[\r\n]?ightarrow', '→', text)
     text = re.sub(r'[\r\n]?ight', '', text)
+    # 温度与度数 LaTeX / 简写结构转换 (如 +5^\circ\text{C}, 5^\circ C, 5^{\circ}\text{C}, 5\degree C -> 5°C)
+    text = re.sub(r'\^?\{?' + _BS + r'(?:circ|degree)\}?\s*(?:' + _BS + r'(?:text|mathrm)?\{?([CFcf])\}?|([CFcf]))', r'°\1\2', text)
+    text = re.sub(r'\^?\{?' + _BS + r'(?:circ|degree)\}?', '°', text)
+    # 修复孤立的 5^ / +5^ 后跟汉字、空格或标点误用 (如 +5^ 环境下 -> +5°C 环境下)
+    text = re.sub(r'([+\-]?\d+(?:\.\d+)?)\^(?=[ \t]*[CFcf]\b)', r'\1°', text)
+    text = re.sub(r'([+\-]?\d+(?:\.\d+)?)\^(?=[ \t]*[\u4e00-\u9fa5（\(\)，。！？；：`\'\"]|$)', r'\1°C', text)
 
     # Phase 1: 数学函数名
     math_funcs = [
@@ -153,6 +159,8 @@ def clean_inline_text(text):
     text = re.sub(_BS + r'[a-zA-Z]+', '', text)
     text = text.replace('\\', '')
     text = text.replace('$', '')
+    text = text.replace('^°', '°')
+    text = re.sub(r'\^', '', text)
     # 彻底清除重复符号与无意义分割线
     text = re.sub(r'[\-+_=~*#|]{2,}', '', text)
     return text.strip()
@@ -381,7 +389,7 @@ def create_docx_document(topic_title, chapter_id, markdown_content, output_path,
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description="Render Markdown to Professional Word Document.")
-    parser.add_argument("--version", action="version", version="docx-speech-briefing-builder v1.1.0")
+    parser.add_argument("--version", action="version", version="docx-speech-briefing-builder v1.2.3")
     parser.add_argument("--title", default="工程技术报告", help="Title")
     parser.add_argument("--topic-id", default="BPVC", help="Topic ID")
     parser.add_argument("--input", required=True, help="Input markdown path")

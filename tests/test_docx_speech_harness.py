@@ -2,13 +2,14 @@
 """
 test_docx_speech_harness.py
 ===========================
-回归与自进化测试套件 (v1.2.2)：
+回归与自进化测试套件 (v1.2.3)：
 验证 Word 渲染与 3 倍速语音清洗引擎：
 1. 数学与工程运算/比较符号完整保留 (D/t > 80 -> D 除以 t 大于 80, P/S <= 0.385 -> P 除以 S 小于等于 零点三八五)；
 2. 标准条款并列斜杠口语化 (Part 5.2.4/5.4.3 -> Part 5 点 2 点 4 5 点 4 点 3, UG-28/UG-29 -> U G 第 28 条 U G 第 29 条)；
-3. 大纲标题编号发音 (1. -> 第 1 点, 1.1 -> 第 1 点 1 节, 1.2 -> 第 1 点 2 节)；
-4. 复杂工程文本、ASCII 边框行级过滤、LaTeX 嵌套与连字符消歧。
-5. 条款/单位斜杠与小数区间号消歧。
+3. 工程分式与带分数口语化 (1/4 -> 四分之一, 1 1/4 -> 一又四分之一, 1-1/4 -> 一又四分之一)；
+4. 温度简写与 LaTeX 结构排版纠偏 (5^ / +5^ -> 5°C, $+5^\circ\text{C}$ -> +5°C)；
+5. 大纲标题编号发音 (1. -> 第 1 点, 1.1 -> 第 1 点 1 节, 1.2 -> 第 1 点 2 节)；
+6. 复杂工程文本、ASCII 边框行级过滤、LaTeX 嵌套与连字符消歧。
 """
 
 import os
@@ -16,8 +17,10 @@ import sys
 import docx
 
 DIR = os.path.dirname(os.path.abspath(__file__))
-if DIR not in sys.path:
-    sys.path.insert(0, DIR)
+PARENT_DIR = os.path.dirname(DIR)
+for d in (DIR, PARENT_DIR):
+    if d not in sys.path:
+        sys.path.insert(0, d)
 
 from clean_speech_text import clean_speech_text
 from render_docx import create_docx_document
@@ -33,9 +36,11 @@ SAMPLE_MARKDOWN = """
 
 ### 1.1 仓库基本信息
 在设计温度 150°C ~ 350°C 范围内，碳钢材料壁厚在 10-20mm 之间。
+工作温度为 +5°C` (严禁在低于 +5^ 环境下存放)，设计低温为 -20°C。
 当 D/t > 80 时，需按 Part 5.2.4/5.4.3 进行刚性校核。
 UG-28/UG-29 要求对于外压圆筒，P/S <= 0.385。
 QW-404.12 / QW-404.33 为并列条款，线能量单位为 kJ/mm。
+管径规格为 NPS 1/4（DN 8）以及 NPS 1 1/4（DN 32），支管壁厚 3/8 in，管嘴尺寸 1-1/4 in。
 推荐区间为 1.5 ～ 2.0。
 接管厚度公差为 0.45mm，容积比为 2:1。
 
@@ -72,16 +77,25 @@ def test_speech_cleaning():
     assert "Q W 第 404 点 12 条 除以" not in cleaned, "错误：QW-404.12/QW-404.33 仍被误读为除法！"
     assert "千焦 除以" not in cleaned, "错误：kJ/mm 仍被误读为除法！"
 
+    # 验证工程分式与带分数
+    assert "NPS 四分之一" in cleaned, "错误：NPS 1/4 未正确转为'NPS 四分之一'！"
+    assert "NPS 一又四分之一" in cleaned, "错误：NPS 1 1/4 未正确转为'NPS 一又四分之一'！"
+    assert "八分之三" in cleaned, "错误：3/8 in 未正确转为'八分之三'！"
+    assert "一又四分之一" in cleaned, "错误：1-1/4 in 未正确转为'一又四分之一'！"
+
+    # 验证温标与区间
+    assert "5 摄氏度" in cleaned, "错误：温度 +5°C / +5^ 未能正确口语化为'5 摄氏度'！"
+    assert "10至20" in cleaned, "未能正确识别数值区间！"
+    assert "1点五至2点零" in cleaned, "未能正确朗读小数区间号‘1.5 ～ 2.0’！"
+    assert clean_speech_text("1.5 ～ 2.0") == "1点五至2点零。", "行首小数区间被误判为大纲标题！"
+    assert "零点四五" in cleaned, "未能正确逐位转换小数！"
+
     # 断言不包含刺耳的重复读音
     assert "至至" not in cleaned, "错误：TTS 文本中存在连续的'至'发音！"
     assert "加加" not in cleaned, "错误：TTS 文本中存在连续的'加'发音！"
     assert "等于等于" not in cleaned, "错误：TTS 文本中存在连续的'等于'发音！"
     assert "+---" not in cleaned, "错误：TTS 文本中残留 ASCII 边框！"
-    assert "10至20" in cleaned, "未能正确识别数值区间！"
-    assert "1点五至2点零" in cleaned, "未能正确朗读小数区间号‘1.5 ～ 2.0’！"
-    assert clean_speech_text("1.5 ～ 2.0") == "1点五至2点零。", "行首小数区间被误判为大纲标题！"
-    assert "零点四五" in cleaned, "未能正确逐位转换小数！"
-    print("\n[✓] TTS 语音清洗与大纲编号测试全部通过！")
+    print("\n[✓] TTS 语音清洗与工程分式/温度测试全部通过！")
 
 def test_docx_rendering():
     out_docx = "/tmp/test_harness_output.docx"
@@ -94,9 +108,10 @@ def test_docx_rendering():
         assert not p.startswith("+---"), f"错误：Word 段落中残留 ASCII 边框线: {p}"
         assert not p.startswith("----"), f"错误：Word 段落中残留减号分割线: {p}"
         assert not p.startswith("===="), f"错误：Word 段落中残留等号分割线: {p}"
-        print("  -", p[:50])
+        assert "+5^ " not in p, f"错误：Word 段落中存在未正确转换的'+5^': {p}"
+        print("  -", p[:60])
 
-    print("\n[✓] Word 文档渲染测试全部通过！无残留符号行。")
+    print("\n[✓] Word 文档渲染测试全部通过！温度正确转换为 °C 且无残留符号行。")
 
 if __name__ == "__main__":
     test_speech_cleaning()
