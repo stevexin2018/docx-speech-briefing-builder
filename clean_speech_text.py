@@ -7,12 +7,13 @@ def convert_section_number(m):
 
 def clean_speech_text(text: str) -> str:
     """
-    通用语音清洗引擎 (v1.2.1)：
+    通用语音清洗引擎 (v1.2.2)：
     将工程 Markdown / 特殊字符转为自然流畅、高可读性的口语文本。
     - 精准保留数学与工程运算符号（除以、大于、小于、大于等于、小于等于、等于、不等于）；
-    - 智能识别标准条款并列（Part 5.2.4/5.4.3 -> Part 5点2点4 5点4点3，UG-28/UG-29 -> UG-28 UG-29，省略斜杠）；
+    - 智能区分公式除法、工程单位与标准条款并列斜杠；
     - 精准识别大纲标题编号 (1. -> 第 1 点, 1.1 -> 第 1 点 1 节, 1.2 -> 第 1 点 2 节)；
     - 保持小数点逐位精准发音 (0.45 -> 零点四五) 与多级章节编号发音；
+    - 保留小数区间语义 (1.5 ～ 2.0 -> 1点五至2点零)；
     - 彻底杜绝 ASCII 边框线、连字符误读。
     """
     if not text:
@@ -39,9 +40,10 @@ def clean_speech_text(text: str) -> str:
 
         # 大纲与章节编号口语化转换（杜绝 1. 被吞或 1.2 读成 2）
         # 1.1 多级大纲编号 (如 1.1, 1.2, 2.1.3)
-        l = re.sub(r'^(\d+(?:\.\d+)+)[ \t]*', convert_section_number, l)
+        # 必须有编号后的空白及标题正文；避免把行首小数区间“1.5 ～ 2.0”误判为章节标题。
+        l = re.sub(r'^(\d+(?:\.\d+)+)[ \t]+(?![~～\-至])(?=\S)', convert_section_number, l)
         # 1.2 顶级大纲/有序列表 (如 1., 2., 1、, 1))
-        l = re.sub(r'^(\d+)[.、\)][ \t]*', r'第 \1 点 ', l)
+        l = re.sub(r'^(\d+)(?:[、\)]|\.(?!\d))[ \t]*', r'第 \1 点 ', l)
 
         # 移除纯外框的 | 符号 (如 ASCII 框里的 | 文字 |)
         l = re.sub(r'^\|[ \t]*', '', l)
@@ -65,15 +67,24 @@ def clean_speech_text(text: str) -> str:
     # 3. 彻底消除连续重复的无意义符号（防止触发重复发音）
     text = re.sub(r'[\-+_=~*#|]{2,}', ' ', text)
 
-    # 4. 【关键】条款/章节/标准并列中的斜杠口语化省略（在除法识别前执行，不读“除以”，也不读“斜杠”）
-    # 4.1 复合条款名并列 (如 UG-28/UG-29, UW-11/UW-12, VIII-1/VIII-2)
-    text = re.sub(r'([A-Za-z]+-[\d\w]+)\s*/\s*([A-Za-z]+-[\d\w]+)', r'\1 \2', text)
+    # 4. 【关键】条款、标识符与单位中的斜杠消歧（在除法识别前执行）
+    # 4.1 复合条款名并列，支持小数级条款号
+    #     (如 QW-404.12/QW-404.33, UG-28/UG-29, VIII-1/VIII-2)
+    clause_id = r'[A-Za-z]+-[A-Za-z0-9]+(?:\.[A-Za-z0-9]+)*'
+    text = re.sub(fr'({clause_id})\s*/\s*({clause_id})', r'\1 \2', text)
     # 4.2 Part X/Part Y 或 Clause X/Clause Y
     text = re.sub(r'((?:Part|Clause|Section|Table|Fig|Figure)\s*[\w\.]+)\s*/\s*((?:Part|Clause|Section|Table|Fig|Figure)?\s*[\w\.]+)', r'\1 \2', text, flags=re.IGNORECASE)
     # 4.3 多级章节编号并列 (如 5.2.4/5.4.3 或 4.1.2/4.1.3)
     text = re.sub(r'(\b\d+(?:\.\d+)+\b)\s*/\s*(\b\d+(?:\.\d+)+\b)', r'\1 \2', text)
     # 4.4 中文条款并列 (如 第 28 条/第 29 条)
     text = re.sub(r'(第\s*\d+\s*条)\s*/\s*(第\s*\d+\s*条)', r'\1 \2', text)
+    # 4.5 工程单位中的“/”表示“每”，而不是数学口语“除以” (如 kJ/mm, N/mm2, mm/s)
+    unit_token = r'(?:kJ|MJ|J|kN|N|MPa|GPa|Pa|kg|g|mg|km|cm|mm|m|s|min|h|K|mol|L|mL)(?:[²³23])?'
+    text = re.sub(fr'(?<![A-Za-z0-9])({unit_token})\s*/\s*({unit_token})(?![A-Za-z0-9])', r'\1 每 \2', text)
+    # 4.6 多字母名称/缩写并列不按除法朗读；单字母公式变量 D/t、P/S 仍留给后续除法规则。
+    text = re.sub(r'\b([A-Za-z]{2,})\s*/\s*([A-Za-z]{2,})\b', r'\1 \2', text)
+    # 4.7 含数字的字母标识符并列 (如 A1/B2、RT1/RT2)，省略斜杠并自然停顿。
+    text = re.sub(r'\b([A-Za-z][A-Za-z0-9.-]*\d[A-Za-z0-9.-]*)\s*/\s*([A-Za-z][A-Za-z0-9.-]*\d[A-Za-z0-9.-]*)\b', r'\1 \2', text)
 
     # 5. 标准与条款口语发音
     text = re.sub(r'Sec\s+VIII-1', 'Sec VIII 第 1 卷', text, flags=re.IGNORECASE)
@@ -81,7 +92,9 @@ def clean_speech_text(text: str) -> str:
     text = re.sub(r'UW-(\d+)', r'U W 第 \1 条', text)
     text = re.sub(r'UCS-(\d+)', r'U C S 第 \1 条', text)
     text = re.sub(r'UHA-(\d+)', r'U H A 第 \1 条', text)
-    text = re.sub(r'QW-(\d+)', r'Q W 第 \1 条', text)
+    def convert_qw_clause(m):
+        return 'Q W 第 ' + ' 点 '.join(m.group(1).split('.')) + ' 条'
+    text = re.sub(r'QW-(\d+(?:\.\d+)*)', convert_qw_clause, text)
 
     # 6. 多级章节编号口语化 (如 5.2.4 -> 5 点 2 点 4)
     def convert_multi_dot(m):
@@ -166,6 +179,7 @@ def clean_speech_text(text: str) -> str:
     # 13. 单位与工程缩写
     text = text.replace('ASME', 'A S M E ')
     text = text.replace('Appendix', '附录')
+    text = text.replace('kJ', ' 千焦 ')
     text = text.replace('MPa', ' 兆帕 ')
     text = text.replace('mm', ' 毫米 ')
     text = text.replace('RT1', ' R T 1 ')
@@ -189,7 +203,7 @@ def clean_speech_text(text: str) -> str:
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description="Clean speech text and generate 3x audio.")
-    parser.add_argument("--version", action="version", version="docx-speech-briefing-builder v1.2.1")
+    parser.add_argument("--version", action="version", version="docx-speech-briefing-builder v1.2.2")
     parser.add_argument("--input", help="Input markdown file")
     parser.add_argument("--output", help="Output mp3 file")
     parser.add_argument("--rate", default="+200%", help="Speech rate")

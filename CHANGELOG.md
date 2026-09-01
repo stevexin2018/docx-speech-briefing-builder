@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.2.2] - 2026-09-01
+
+### 🔧 Fixed
+- **Slash Disambiguation**:
+  - Parallel decimal-level clauses such as `QW-404.12 / QW-404.33` now use a natural pause instead of being spoken as “除以”.
+  - Engineering units such as `kJ/mm` now read naturally as “千焦每毫米”.
+  - Existing mathematical ratios such as `D/t` and `P/S` continue to read as “除以”.
+- **Decimal Range Narration**:
+  - Fixed line-leading ranges such as `1.5 ～ 2.0` being misclassified as outline headings; they now read as “1点五至2点零”.
+
 ## [1.2.1] - 2026-08-31
 
 ### 🚀 Added & Improved

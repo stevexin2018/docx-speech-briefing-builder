@@ -1,21 +1,21 @@
 ---
 name: docx-speech-briefing-builder
-version: 1.1.1
+version: 1.2.2
 updated: 2026-08-31
 description: 将 Markdown 深度工程报告自动转换为排版 Word 文档 (.docx) 与 3倍速高品质语音讲解音频 (.mp3)。包含 LaTeX 公式 Unicode/OMML 转换、参数表格渲染、大纲标题层级美化、大纲章节编号精准播报 (1.1 -> 第 1 点 1 节)、ASCII 边框行级过滤与语音口语化防杂音清洗。
 ---
 
-# Word & 3x Speech Briefing Builder (v1.1.1)
+# Word & 3x Speech Briefing Builder (v1.2.2)
 
 ## 📌 概述
 本 Skill 用于将任何大模型生成的 Markdown 深度技术分析报告，一键转换为：
 1. **排版 Word 文档 (`.docx`)**：包含页眉页脚、标题层级、Unicode/OMML 公式转换、数据表格交替底色、引用高亮框、**自动剥离 ASCII 文本边框与纯符号分隔线**；
-2. **3 倍速晓晓女声讲解音频 (`.mp3`)**：自动剥离 Markdown 符号与公式语法，**精准口语化多级大纲编号（如 1.1 朗读为“第 1 点 1 节”，1. 朗读为“第 1 点”，绝不漏读或截断）**，将工程公式/希腊字母/小数点/温度/百分比口语化，生成自然流畅的 3 倍速音频。
+2. **3 倍速晓晓女声讲解音频 (`.mp3`)**：自动剥离 Markdown 符号与公式语法，**精准口语化多级大纲编号（如 1.1 朗读为“第 1 点 1 节”，1. 朗读为“第 1 点”，绝不漏读或截断）**，将工程公式/希腊字母/小数点/温度/百分比口语化，并精确区分公式除法、并列条款及工程单位斜杠；支持 `QW-404.12 / QW-404.33` 自然停顿、`kJ/mm` 朗读为“千焦每毫米”、`1.5 ～ 2.0` 朗读为数值区间。
 
 ---
 
 ## 🛠️ 核心文件结构
-- `version.py`：版本元数据定义 (`__version__ = "1.1.1"`)
+- `version.py`：版本元数据定义 (`__version__ = "1.2.2"`)
 - `CHANGELOG.md`：详细版本演进与发布历史
 - `render_docx.py`：Word 渲染排版引擎（含 11 阶段 LaTeX $\rightarrow$ Unicode/OMML 转换与 ASCII 边框过滤）
 - `clean_speech_text.py`：语音口语化转换清洗器（公式发音转换、大纲章节编号口语化、断句停顿、数值范围与符号消歧）
