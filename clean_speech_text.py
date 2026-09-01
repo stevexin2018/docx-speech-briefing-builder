@@ -79,7 +79,7 @@ def convert_temperature_value(m):
 
 def clean_speech_text(text: str) -> str:
     """
-    通用语音清洗引擎 (v1.2.4)：
+    通用语音清洗引擎 (v1.2.5)：
     将工程 Markdown / 特殊字符转为自然流畅、高可读性的口语文本。
     """
     if not text:
@@ -133,7 +133,9 @@ def clean_speech_text(text: str) -> str:
     # 3. 彻底消除连续重复的无意义符号（防止触发重复发音）
     text = re.sub(r'[\-+_=~*#|]{2,}', ' ', text)
 
-    # 3.1 温度与度数 LaTeX / 简写符号预修复 (如 +5^\circ\text{C}, 5^\circ C, +5^ 环境下 -> +5°C)
+    # 3.1 清理温标前的空 LaTeX 花括号（如 {}°C -> °C），避免 Word/TTS 残留。
+    text = re.sub(r'\{\s*\}(?=\s*(?:℃|°[CFcf]))', '', text)
+    # 3.2 温度与度数 LaTeX / 简写符号预修复 (如 +5^\circ\text{C}, 5^\circ C, +5^ 环境下 -> +5°C)
     text = re.sub(r'(?:\^|\^\{|\{)?' + _BS + r'(?:circ|degree)(?:\})?\s*(?:' + _BS + r'(?:text|mathrm)?\{?([CFcf])\}?|([CFcf]))', r'°\1\2', text)
     text = re.sub(r'(?:\^|\^\{|\{)?' + _BS + r'(?:circ|degree)(?:\})?', '°', text)
     text = re.sub(r'([+\-]?\d+(?:\.\d+)?)\^(?=[ \t]*[CFcf]\b)', r'\1°', text)
@@ -234,6 +236,7 @@ def clean_speech_text(text: str) -> str:
     # 10. 比较与运算符号口语化（精准保留 大于、小于、大于等于、小于等于、等于、不等于、除以、乘以）
     # 10.1 比较符
     text = re.sub(r'\\ge\b|\\geq\b|>=|≥', ' 大于等于 ', text)
+    text = re.sub(r'\\approx\b|≈|≃|≅', ' 约等于 ', text)
     text = re.sub(r'\\le\b|\\leq\b|<=|≤', ' 小于等于 ', text)
     text = re.sub(r'!=|≠|\\ne\b|\\neq\b', ' 不等于 ', text)
     text = re.sub(r'>', ' 大于 ', text)
@@ -263,6 +266,12 @@ def clean_speech_text(text: str) -> str:
     text = re.sub(r'(正\s*\d+|[+\\-]?\d+(?:点[\w]+)?)\s*(?:℃|°C|\^\s*\\circ\s*\\text\{C\}|\^\s*\\circ\s*C|\\degree\s*C)', r'\1 摄氏度 ', text)
     text = re.sub(r'(正\s*\d+|[+\\-]?\d+(?:点[\w]+)?)\s*(?:°F|\^\s*\\circ\s*\\text\{F\}|\^\s*\\circ\s*F|\\degree\s*F)', r'\1 华氏度 ', text)
 
+    # 12.1 无数值前缀的温标单位（如单位列表中的 °C / °F）。
+    text = re.sub(r'(?<![A-Za-z0-9])°C\b', ' 摄氏度 ', text)
+    text = re.sub(r'(?<![A-Za-z0-9])°F\b', ' 华氏度 ', text)
+    # 12.2 角度识别：剩余的“数值°”按角度朗读（温标 °C / °F 已在前序规则中处理）。
+    text = re.sub(r'([+\-−]?\d+(?:点[零一二三四五六七八九]+)?)\s*°(?![CFcf])', r'\1 度 ', text)
+
     # 13. 单位与工程缩写
     text = text.replace('ASME', 'A S M E ')
     text = text.replace('Appendix', '附录')
@@ -290,7 +299,7 @@ def clean_speech_text(text: str) -> str:
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description="Clean speech text and generate 3x audio.")
-    parser.add_argument("--version", action="version", version="docx-speech-briefing-builder v1.2.4")
+    parser.add_argument("--version", action="version", version="docx-speech-briefing-builder v1.2.5")
     parser.add_argument("--input", help="Input markdown file")
     parser.add_argument("--output", help="Output mp3 file")
     parser.add_argument("--rate", default="+200%", help="Speech rate")

@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.2.5] - 2026-09-02
+
+### 🔧 Fixed & Improved
+- **Approximation Operator Narration**: `≈` / `\approx` now reads as “约等于”, e.g. `d/D ≈ 0.465`.
+- **Empty Temperature-Brace Cleanup**: Word rendering removes empty LaTeX braces before temperature units, converting `{}°C` to `°C`.
+- **Angular Degree Narration**: Standalone angular values such as `360°` now read as “360度”, without affecting `°C` / `°F` temperature handling.
+
 ## [1.2.4] - 2026-09-02
 
 ### 🔧 Fixed & Improved

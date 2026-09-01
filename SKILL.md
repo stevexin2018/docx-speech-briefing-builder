@@ -1,24 +1,24 @@
 ---
 name: docx-speech-briefing-builder
-version: 1.2.4
+version: 1.2.5
 updated: 2026-09-02
 description: 将 Markdown 深度工程报告自动转换为排版 Word 文档 (.docx) 与 3倍速高品质语音讲解音频 (.mp3)。核心引擎已完全独立解耦至独立仓库 /root/docx-speech-briefing-builder (https://github.com/stevexin2018/docx-speech-briefing-builder)。
 ---
 
-# Word & 3x Speech Briefing Builder (v1.2.4)
+# Word & 3x Speech Briefing Builder (v1.2.5)
 
 ## 📌 概述
 本 Skill 作为 OpenClaw 技能协议入口，底层直接连接 **`docx-speech-briefing-builder` 独立组件库**（独立 Git 仓库：`/root/docx-speech-briefing-builder`）。
 
 一键将 Markdown 深度技术分析报告转换为：
 1. **排版 Word 文档 (`.docx`)**：包含页眉页脚、标题层级、Unicode/OMML 公式转换、数据表格交替底色、引用高亮框、**自动剥离 ASCII 文本边框与纯符号分隔线**、**自动规范化温度度数排版（如 5^ / +5^ / +5^\circ\text{C} -> 5°C / +5°C）**；
-2. **3 倍速晓晓女声讲解音频 (`.mp3`)**：完整保留数学与工程运算符（除以、大于、小于、大于等于、小于等于、等于、不等于），智能区分公式除法、工程分式（1/4 -> 四分之一, 1 1/4 -> 一又四分之一）、工程单位（kJ/mm -> 千焦每毫米）、材料牌号并列（304L/316L、Alloy 800HT / UNS N08811 自然停顿）与条款并列斜杠（QW-404.12 / QW-404.33 自然停顿）；支持 -269℃ ~ 900℃ 朗读为“零下269摄氏度至900摄氏度”，口语化多级大纲编号（1.1 -> 第 1 点 1 节），生成自然流畅的 3 倍速音频。
+2. **3 倍速晓晓女声讲解音频 (`.mp3`)**：完整保留数学与工程运算符（除以、大于、小于、大于等于、小于等于、等于、不等于），智能区分公式除法、工程分式（1/4 -> 四分之一, 1 1/4 -> 一又四分之一）、工程单位（kJ/mm -> 千焦每毫米）、材料牌号并列（304L/316L、Alloy 800HT / UNS N08811 自然停顿）与条款并列斜杠（QW-404.12 / QW-404.33 自然停顿）；支持 -269℃ ~ 900℃ 朗读为“零下269摄氏度至900摄氏度”；支持 ≈ 朗读为“约等于”、360° 朗读为“360度”，并自动将 {}°C 排版规范化为 °C，口语化多级大纲编号（1.1 -> 第 1 点 1 节），生成自然流畅的 3 倍速音频。
 
 ---
 
 ## 🛠️ 独立仓库架构与核心文件
 独立仓库位置：`/root/docx-speech-briefing-builder`
-- `version.py`：版本元数据定义 (`__version__ = "1.2.4"`)
+- `version.py`：版本元数据定义 (`__version__ = "1.2.5"`)
 - `CHANGELOG.md`：版本演进与发布历史
 - `render_docx.py`：Word 渲染排版引擎
 - `clean_speech_text.py`：语音口语化转换清洗器（公式发音转换、大纲章节编号口语化、断句停顿、数值范围与符号消歧）

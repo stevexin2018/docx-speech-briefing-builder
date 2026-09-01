@@ -64,6 +64,8 @@ def clean_inline_text(text):
     text = re.sub(r'\$([^$]+)\$', r'\1', text)
     text = re.sub(r'[\r\n]?ightarrow', '→', text)
     text = re.sub(r'[\r\n]?ight', '', text)
+    # 清除温标前的空 LaTeX 花括号（如 {}°C -> °C）。
+    text = re.sub(r'\{\s*\}(?=\s*(?:℃|°[CFcf]))', '', text)
     # 温度与度数 LaTeX / 简写结构转换 (如 +5^\circ\text{C}, 5^\circ C, 5^{\circ}\text{C}, 5\degree C -> 5°C)
     text = re.sub(r'\^?\{?' + _BS + r'(?:circ|degree)\}?\s*(?:' + _BS + r'(?:text|mathrm)?\{?([CFcf])\}?|([CFcf]))', r'°\1\2', text)
     text = re.sub(r'\^?\{?' + _BS + r'(?:circ|degree)\}?', '°', text)
@@ -389,7 +391,7 @@ def create_docx_document(topic_title, chapter_id, markdown_content, output_path,
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description="Render Markdown to Professional Word Document.")
-    parser.add_argument("--version", action="version", version="docx-speech-briefing-builder v1.2.3")
+    parser.add_argument("--version", action="version", version="docx-speech-briefing-builder v1.2.5")
     parser.add_argument("--title", default="工程技术报告", help="Title")
     parser.add_argument("--topic-id", default="BPVC", help="Topic ID")
     parser.add_argument("--input", required=True, help="Input markdown path")
