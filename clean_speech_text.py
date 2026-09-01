@@ -55,9 +55,31 @@ def convert_section_number(m):
     parts = num_str.split('.')
     return '第 ' + ' 点 '.join(parts) + ' 节 '
 
+def spoken_signed_number(sign: str, number: str) -> str:
+    if sign in ('-', '−'):
+        return f'零下 {number}'
+    if sign == '+':
+        return f'正 {number}'
+    return number
+
+def temperature_unit_name(unit: str) -> str:
+    return '华氏度' if unit == '°F' else '摄氏度'
+
+def convert_temperature_range(m):
+    start = spoken_signed_number(m.group(1), m.group(2))
+    end = spoken_signed_number(m.group(4), m.group(5))
+    start_unit = temperature_unit_name(m.group(3))
+    end_unit = temperature_unit_name(m.group(6))
+    return f'{start} {start_unit} 至 {end} {end_unit}'
+
+def convert_temperature_value(m):
+    value = spoken_signed_number(m.group(1), m.group(2))
+    unit = temperature_unit_name(m.group(3))
+    return f'{value} {unit}'
+
 def clean_speech_text(text: str) -> str:
     """
-    通用语音清洗引擎 (v1.2.3)：
+    通用语音清洗引擎 (v1.2.4)：
     将工程 Markdown / 特殊字符转为自然流畅、高可读性的口语文本。
     """
     if not text:
@@ -133,8 +155,12 @@ def clean_speech_text(text: str) -> str:
     text = re.sub(fr'(?<![A-Za-z0-9])({unit_token})\s*/\s*({unit_token})(?![A-Za-z0-9])', r'\1 每 \2', text)
     # 4.6 多字母名称/缩写并列不按除法朗读；单字母公式变量 D/t、P/S 仍留给后续除法规则。
     text = re.sub(r'\b([A-Za-z]{2,})\s*/\s*([A-Za-z]{2,})\b', r'\1 \2', text)
-    # 4.7 含数字的字母标识符并列 (如 A1/B2、RT1/RT2)，省略斜杠并自然停顿。
-    text = re.sub(r'\b([A-Za-z][A-Za-z0-9.-]*\d[A-Za-z0-9.-]*)\s*/\s*([A-Za-z][A-Za-z0-9.-]*\d[A-Za-z0-9.-]*)\b', r'\1 \2', text)
+    # 4.7 带材料体系标签的并列牌号 (如 Alloy 800HT / UNS N08811) 省略斜杠并自然停顿。
+    material_label = r'(?:Alloy|UNS|Grade|Type)'
+    text = re.sub(fr'\b({material_label}\s+[A-Za-z0-9.-]+)\s*/\s*({material_label}\s+[A-Za-z0-9.-]+)\b', r'\1 \2', text, flags=re.IGNORECASE)
+    # 4.8 数字开头或字母开头的材料牌号并列 (如 304L/316L、A516-70/A537-1、A1/B2、RT1/RT2)。
+    material_grade = r'(?=[A-Za-z0-9.-]*[A-Za-z])(?=[A-Za-z0-9.-]*\d)[A-Za-z0-9.-]+'
+    text = re.sub(fr'\b({material_grade})\s*/\s*({material_grade})\b', r'\1 \2', text)
 
     # 5. 标准与条款口语发音
     text = re.sub(r'Sec\s+VIII-1', 'Sec VIII 第 1 卷', text, flags=re.IGNORECASE)
@@ -167,7 +193,12 @@ def clean_speech_text(text: str) -> str:
     text = re.sub(r'(?<![A-Za-z0-9.])(\d+)[ \t\-]+(\d+)\s*/\s*(\d+)(?![A-Za-z0-9.])', convert_mixed_fraction, text)
     # 8.2 纯数字真/假分数 (如 1/4, 1/2, 3/4, 3/8, 5/16, 11/16 -> 四分之一, 二分之一)
     text = re.sub(r'(?<![A-Za-z0-9./])(\d{1,3})\s*/\s*(\d{1,3})(?![A-Za-z0-9./])', convert_simple_fraction, text)
-    # 8.3 比例与范围 (2:1 -> 2 比 1, 10-20mm -> 10至20毫米)
+    # 8.3 带正负号的温度与温度区间（如 -269℃ ~ 900℃ -> 零下269摄氏度至900摄氏度）。
+    decimal_number = r'\d+(?:点[零一二三四五六七八九]+)?'
+    temperature_unit = r'(?:℃|°C|°F)'
+    text = re.sub(fr'([+\-−]?)({decimal_number})\s*({temperature_unit})\s*[~～至]\s*([+\-−]?)({decimal_number})\s*({temperature_unit})', convert_temperature_range, text)
+    text = re.sub(fr'([+\-−]?)({decimal_number})\s*({temperature_unit})', convert_temperature_value, text)
+    # 8.4 比例与普通数值范围 (2:1 -> 2 比 1, 10-20mm -> 10至20毫米)
     text = re.sub(r'(\d+(?:点[\w]+)?)\s*[:比]\s*(\d+(?:点[\w]+)?)', r'\1 比 \2', text)
     text = re.sub(r'(\d+(?:点[\w]+)?)%\s*[~～\-至]\s*(\d+(?:点[\w]+)?)%', r'百分之\1至百分之\2', text)
     text = re.sub(r'(\d+(?:点[\w]+)?)\s*[~～\-至]\s*(\d+(?:点[\w]+)?)', r'\1至\2', text)
@@ -259,7 +290,7 @@ def clean_speech_text(text: str) -> str:
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description="Clean speech text and generate 3x audio.")
-    parser.add_argument("--version", action="version", version="docx-speech-briefing-builder v1.2.3")
+    parser.add_argument("--version", action="version", version="docx-speech-briefing-builder v1.2.4")
     parser.add_argument("--input", help="Input markdown file")
     parser.add_argument("--output", help="Output mp3 file")
     parser.add_argument("--rate", default="+200%", help="Speech rate")

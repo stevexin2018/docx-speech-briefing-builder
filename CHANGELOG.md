@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.2.4] - 2026-09-02
+
+### 🔧 Fixed & Improved
+- **Material Grade Slash Disambiguation**:
+  - Parallel grades such as `SA-240 304L/316L` and `Alloy 800HT / UNS N08811` now use a natural pause instead of being spoken as “除以”.
+  - Mathematical variable ratios such as `D/t` and `P/S` continue to read as “除以”.
+- **Signed Temperature Range Narration**:
+  - Temperature ranges such as `-269℃ ~ 900℃` now read naturally as “零下269摄氏度至900摄氏度”, preserving both the negative sign and the range separator.
+
 ## [1.2.3] - 2026-09-01
 
 ### 🔧 Fixed & Improved

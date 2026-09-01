@@ -2,7 +2,7 @@
 """
 test_docx_speech_harness.py
 ===========================
-回归与自进化测试套件 (v1.2.3)：
+回归与自进化测试套件 (v1.2.4)：
 验证 Word 渲染与 3 倍速语音清洗引擎：
 1. 数学与工程运算/比较符号完整保留 (D/t > 80 -> D 除以 t 大于 80, P/S <= 0.385 -> P 除以 S 小于等于 零点三八五)；
 2. 标准条款并列斜杠口语化 (Part 5.2.4/5.4.3 -> Part 5 点 2 点 4 5 点 4 点 3, UG-28/UG-29 -> U G 第 28 条 U G 第 29 条)；
@@ -40,6 +40,8 @@ SAMPLE_MARKDOWN = """
 当 D/t > 80 时，需按 Part 5.2.4/5.4.3 进行刚性校核。
 UG-28/UG-29 要求对于外压圆筒，P/S <= 0.385。
 QW-404.12 / QW-404.33 为并列条款，线能量单位为 kJ/mm。
+材料候选为 SA-240 304L/316L，以及 Alloy 800HT / UNS N08811。
+适用温度范围为 -269℃ ~ 900℃。
 管径规格为 NPS 1/4（DN 8）以及 NPS 1 1/4（DN 32），支管壁厚 3/8 in，管嘴尺寸 1-1/4 in。
 推荐区间为 1.5 ～ 2.0。
 接管厚度公差为 0.45mm，容积比为 2:1。
@@ -76,6 +78,10 @@ def test_speech_cleaning():
     assert "千焦 每 毫米" in cleaned, "错误：kJ/mm 未正确转换为工程单位‘千焦每毫米’！"
     assert "Q W 第 404 点 12 条 除以" not in cleaned, "错误：QW-404.12/QW-404.33 仍被误读为除法！"
     assert "千焦 除以" not in cleaned, "错误：kJ/mm 仍被误读为除法！"
+    assert "304L 316L" in cleaned, "错误：304L/316L 未按并列材料牌号自然停顿！"
+    assert "304L 除以 316L" not in cleaned, "错误：304L/316L 仍被误读为除法！"
+    assert "Alloy 800HT UNS N08811" in cleaned, "错误：Alloy 800HT / UNS N08811 未按并列牌号自然停顿！"
+    assert "800HT 除以 UNS" not in cleaned, "错误：Alloy 800HT / UNS N08811 仍被误读为除法！"
 
     # 验证工程分式与带分数
     assert "NPS 四分之一" in cleaned, "错误：NPS 1/4 未正确转为'NPS 四分之一'！"
@@ -85,6 +91,8 @@ def test_speech_cleaning():
 
     # 验证温标与区间
     assert "5 摄氏度" in cleaned, "错误：温度 +5°C / +5^ 未能正确口语化为'5 摄氏度'！"
+    assert "零下 269 摄氏度 至 900 摄氏度" in cleaned, "错误：-269℃ ~ 900℃ 未正确朗读为零下温度区间！"
+    assert clean_speech_text("-269℃ ~ 900℃") == "零下 269 摄氏度 至 900 摄氏度。", "独立负温区间未正确朗读‘零下’和‘至’！"
     assert "10至20" in cleaned, "未能正确识别数值区间！"
     assert "1点五至2点零" in cleaned, "未能正确朗读小数区间号‘1.5 ～ 2.0’！"
     assert clean_speech_text("1.5 ～ 2.0") == "1点五至2点零。", "行首小数区间被误判为大纲标题！"
