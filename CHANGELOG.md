@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.2.6] - 2026-09-02
+
+### 🔧 Fixed & Improved
+- **Global Empty-Brace Cleanup**: Removes standalone empty LaTeX braces `{}` during Word and TTS preprocessing, including `{}°C -> °C`.
+- **Appendix Reference Slash Disambiguation**: Parallel appendix citations such as `App. 2 / App. Y` now use a natural pause instead of “除以”.
+- **Hardness / Numeric Range Narration**: Numeric ranges using `~` / `～` now explicitly read “至”, e.g. `248 ～ 352` and `HRC 24 ～ 38`.
+
 ## [1.2.5] - 2026-09-02
 
 ### 🔧 Fixed & Improved

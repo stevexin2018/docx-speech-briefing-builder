@@ -79,7 +79,7 @@ def convert_temperature_value(m):
 
 def clean_speech_text(text: str) -> str:
     """
-    通用语音清洗引擎 (v1.2.5)：
+    通用语音清洗引擎 (v1.2.6)：
     将工程 Markdown / 特殊字符转为自然流畅、高可读性的口语文本。
     """
     if not text:
@@ -133,8 +133,8 @@ def clean_speech_text(text: str) -> str:
     # 3. 彻底消除连续重复的无意义符号（防止触发重复发音）
     text = re.sub(r'[\-+_=~*#|]{2,}', ' ', text)
 
-    # 3.1 清理温标前的空 LaTeX 花括号（如 {}°C -> °C），避免 Word/TTS 残留。
-    text = re.sub(r'\{\s*\}(?=\s*(?:℃|°[CFcf]))', '', text)
+    # 3.1 移除所有空 LaTeX 花括号（如 {}°C -> °C），避免 Word/TTS 残留。
+    text = re.sub(r'\{\s*\}', '', text)
     # 3.2 温度与度数 LaTeX / 简写符号预修复 (如 +5^\circ\text{C}, 5^\circ C, +5^ 环境下 -> +5°C)
     text = re.sub(r'(?:\^|\^\{|\{)?' + _BS + r'(?:circ|degree)(?:\})?\s*(?:' + _BS + r'(?:text|mathrm)?\{?([CFcf])\}?|([CFcf]))', r'°\1\2', text)
     text = re.sub(r'(?:\^|\^\{|\{)?' + _BS + r'(?:circ|degree)(?:\})?', '°', text)
@@ -146,8 +146,9 @@ def clean_speech_text(text: str) -> str:
     #     (如 QW-404.12/QW-404.33, UG-28/UG-29, VIII-1/VIII-2)
     clause_id = r'[A-Za-z]+-[A-Za-z0-9]+(?:\.[A-Za-z0-9]+)*'
     text = re.sub(fr'({clause_id})\s*/\s*({clause_id})', r'\1 \2', text)
-    # 4.2 Part X/Part Y 或 Clause X/Clause Y
-    text = re.sub(r'((?:Part|Clause|Section|Table|Fig|Figure)\s*[\w\.]+)\s*/\s*((?:Part|Clause|Section|Table|Fig|Figure)?\s*[\w\.]+)', r'\1 \2', text, flags=re.IGNORECASE)
+    # 4.2 Part / Clause / Section / Appendix(App.) 等引用并列（如 App. 2 / App. Y）。
+    reference_label = r'(?:Part|Clause|Section|Table|Fig|Figure|Appendix|App\.?)'
+    text = re.sub(fr'({reference_label}\s*[A-Za-z0-9.]+)\s*/\s*({reference_label}\s*[A-Za-z0-9.]+)', r'\1 \2', text, flags=re.IGNORECASE)
     # 4.3 多级章节编号并列 (如 5.2.4/5.4.3 或 4.1.2/4.1.3)
     text = re.sub(r'(\b\d+(?:\.\d+)+\b)\s*/\s*(\b\d+(?:\.\d+)+\b)', r'\1 \2', text)
     # 4.4 中文条款并列 (如 第 28 条/第 29 条)
@@ -203,7 +204,8 @@ def clean_speech_text(text: str) -> str:
     # 8.4 比例与普通数值范围 (2:1 -> 2 比 1, 10-20mm -> 10至20毫米)
     text = re.sub(r'(\d+(?:点[\w]+)?)\s*[:比]\s*(\d+(?:点[\w]+)?)', r'\1 比 \2', text)
     text = re.sub(r'(\d+(?:点[\w]+)?)%\s*[~～\-至]\s*(\d+(?:点[\w]+)?)%', r'百分之\1至百分之\2', text)
-    text = re.sub(r'(\d+(?:点[\w]+)?)\s*[~～\-至]\s*(\d+(?:点[\w]+)?)', r'\1至\2', text)
+    text = re.sub(r'(\d+(?:点[\w]+)?)\s*[~～﹋〜～至]\s*(\d+(?:点[\w]+)?)', r'\1 至 \2', text)
+    text = re.sub(r'(\d+(?:点[\w]+)?)\s*-\s*(\d+(?:点[\w]+)?)', r'\1至\2', text)
     text = re.sub(r'(\d+(?:点[\w]+)?)%', r'百分之\1', text)
 
     # 9. 希腊字母口语化
@@ -299,7 +301,7 @@ def clean_speech_text(text: str) -> str:
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description="Clean speech text and generate 3x audio.")
-    parser.add_argument("--version", action="version", version="docx-speech-briefing-builder v1.2.5")
+    parser.add_argument("--version", action="version", version="docx-speech-briefing-builder v1.2.6")
     parser.add_argument("--input", help="Input markdown file")
     parser.add_argument("--output", help="Output mp3 file")
     parser.add_argument("--rate", default="+200%", help="Speech rate")
