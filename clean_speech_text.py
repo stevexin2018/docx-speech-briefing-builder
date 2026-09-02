@@ -77,6 +77,33 @@ def convert_temperature_value(m):
     unit = temperature_unit_name(m.group(3))
     return f'{value} {unit}'
 
+def convert_path_to_speech(path_str: str) -> str:
+    """将文件系统路径、注册表路径与可执行文件名转换为易于 TTS 自然朗读的口语发音文本，精准保留反斜杠与扩展名发音。"""
+    p = path_str.strip('`"\'')
+    
+    # 1. 驱动器盘符识别：C:\ -> C 盘 反斜杠, C:/ -> C 盘 斜杠, C: -> C 盘
+    p = re.sub(r'^([A-Za-z]):\\', r'\1 盘 反斜杠 ', p)
+    p = re.sub(r'^([A-Za-z]):/', r'\1 盘 斜杠 ', p)
+    p = re.sub(r'^([A-Za-z]):(?![A-Za-z0-9])', r'\1 盘 ', p)
+    
+    # 2. 注册表前缀识别：HKLM:\ -> H K L M 冒号 反斜杠
+    p = re.sub(r'^(HKLM|HKCU|HKCR|HKU|HKEY_[A-Z_]+):\\', r'\1 冒号 反斜杠 ', p)
+    p = re.sub(r'^(HKLM|HKCU|HKCR|HKU|HKEY_[A-Z_]+):/', r'\1 冒号 斜杠 ', p)
+    
+    # 3. UNC 网络共享前缀：\\ -> 反斜杠反斜杠
+    p = re.sub(r'^\\\\\\', '反斜杠反斜杠 ', p)
+    
+    # 4. 路径中所有剩余反斜杠 -> 反斜杠
+    p = p.replace('\\', ' 反斜杠 ')
+    
+    # 5. 路径中正斜杠 -> 斜杠
+    p = p.replace('/', ' 斜杠 ')
+    
+    # 6. 文件扩展名点号转换（防止后续标点清除阶段被误吞）：.lnk -> 点 lnk, .exe -> 点 exe
+    p = re.sub(r'\.([A-Za-z0-9]+)(?=[ \t]*$|[，。！？；：、\s])', r' 点 \1 ', p)
+    
+    return p
+
 def clean_speech_text(text: str) -> str:
     """
     通用语音清洗引擎 (v1.2.6)：
@@ -123,7 +150,28 @@ def clean_speech_text(text: str) -> str:
     # 拼接段落
     text = " 。 ".join(cleaned_lines)
 
-    # 2. 移除粗体/斜体/行内代码等 Markdown 标记
+    # 2. 路径识别与 Markdown 标记清洗
+    # 2.1 优先处理行内代码块 `...` 中的文件路径与程序名
+    def _repl_inline_code(m):
+        code_content = m.group(1).strip()
+        if (re.search(r'[A-Za-z]:[\\/]', code_content) or 
+            '\\' in code_content or 
+            re.search(r'\.(?:exe|dll|lnk|msi|bat|cmd|docx|md|txt|xml|json|config|log|swidtag|hdi|spv|onnx|ptx|bc|hio|sldprt|sldasm|slddrw|eprt|easm|edrw|dwg|dxf|step|stp|iges|igs|sat|x_t|x_b|3dxml|cgr|catpart|catproduct|prt|asm|ipt|iam|par|jt|stl|obj|xvl|mp3|wav|zip|tar|gz|7z|pdf|html|htm|py|ps1|sh)\b', code_content, re.IGNORECASE) or
+            re.search(r'^(?:HKLM|HKCU|HKCR|HKU|HKEY_):', code_content)):
+            return convert_path_to_speech(code_content)
+        return code_content
+
+    text = re.sub(r'`([^`\r\n]+)`', _repl_inline_code, text)
+
+    # 2.2 识别未包裹反引号的裸露路径（Windows 盘符路径、注册表路径、UNC 共享路径）
+    bare_path_pattern = r'(?<![A-Za-z0-9_])(?:[A-Za-z]:[\\/]|(?:HKLM|HKCU|HKCR|HKU|HKEY_[A-Z_]+):[\\/]|\\\\[A-Za-z0-9_.-]+[\\/])[^\s，。！？；：、`"\'<>\[\]{}()]+'
+    text = re.sub(bare_path_pattern, lambda m: convert_path_to_speech(m.group(0)), text)
+
+    # 2.3 转换任何残留的反斜杠（确保路径中所有的反斜杠均被自然发音为“反斜杠”）
+    text = re.sub(r'(?<=[A-Za-z0-9_\u4e00-\u9fa5])\\(?=[A-Za-z0-9_\u4e00-\u9fa5])', ' 反斜杠 ', text)
+    text = text.replace('\\', ' 反斜杠 ')
+
+    # 2.4 移除粗体/斜体/剩余行内代码等 Markdown 标记
     text = re.sub(r'\*\*([^*]+)\*\*', r'\1', text)
     text = re.sub(r'\*([^*]+)\*', r'\1', text)
     text = re.sub(r'__([^_]+)__', r'\1', text)
@@ -301,10 +349,11 @@ def clean_speech_text(text: str) -> str:
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description="Clean speech text and generate 3x audio.")
-    parser.add_argument("--version", action="version", version="docx-speech-briefing-builder v1.2.6")
+    parser.add_argument("--version", action="version", version="docx-speech-briefing-builder v1.2.7")
     parser.add_argument("--input", help="Input markdown file")
     parser.add_argument("--output", help="Output mp3 file")
     parser.add_argument("--rate", default="+200%", help="Speech rate")
+    parser.add_argument("--proxy", default=None, help="Proxy URL (e.g. http://127.0.0.1:7897)")
     args = parser.parse_args()
 
     if args.input:
@@ -312,8 +361,21 @@ if __name__ == "__main__":
             raw = f.read()
         cleaned = clean_speech_text(raw)
         if args.output:
-            import subprocess
+            import os, subprocess, socket
+            proxy = args.proxy or os.environ.get("HTTP_PROXY") or os.environ.get("HTTPS_PROXY") or os.environ.get("ALL_PROXY") or os.environ.get("http_proxy") or os.environ.get("https_proxy")
+            if not proxy:
+                for p_candidate in ["127.0.0.1:7897", "127.0.0.1:7890"]:
+                    host, port = p_candidate.split(":")
+                    try:
+                        with socket.create_connection((host, int(port)), timeout=0.3):
+                            proxy = f"http://{p_candidate}"
+                            break
+                    except Exception:
+                        pass
+
             cmd = ["edge-tts", "--voice", "zh-CN-XiaoxiaoNeural", f"--rate={args.rate}", "--text", cleaned, "--write-media", args.output]
+            if proxy:
+                cmd.extend(["--proxy", proxy])
             subprocess.run(cmd, check=True)
             print(f"Audio saved to {args.output}")
         else:

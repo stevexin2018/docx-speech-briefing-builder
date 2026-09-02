@@ -55,11 +55,36 @@ def _latex_sqrt_to_unicode(text):
     return text
 
 def clean_inline_text(text):
-    """深度清理行内 LaTeX 标记，转换为规范干净的 Unicode 工程符号"""
+    """深度清理行内 LaTeX 标记，转换为规范干净的 Unicode 工程符号，同时严格保护文件路径与行内代码"""
     if not text:
         return ""
 
-    # Phase 0: 剥离数学定界符与温度/角度符号规范化
+    # Phase 0: 保护行内代码与所有系统/文件路径（防止路径反斜杠及文件夹名被 LaTeX 规则误删）
+    tokens = {}
+    token_idx = [0]
+
+    def _save_token(val):
+        key = f"XQZTOKENDOCX{token_idx[0]}QZX"
+        tokens[key] = val
+        token_idx[0] += 1
+        return key
+
+    # 0.1 保护行内代码块 `...`
+    text = re.sub(r'`[^`\r\n]+`', lambda m: _save_token(m.group(0)), text)
+
+    # 0.2 保护 Windows 绝对/相对文件路径（如 C:\Users\..., D:/SW2026/... 等）
+    win_path_pattern = r'(?<![a-zA-Z0-9_])([a-zA-Z]:[\\/](?:[^\s，。！？；：、`"\'<>\[\]\{\}\(\)\$\^]+[ \\/]?)*[^\s，。！？；：、`"\'<>\[\]\{\}\(\)\$\^]+[\\/]?)'
+    text = re.sub(win_path_pattern, lambda m: _save_token(m.group(0)), text)
+
+    # 0.3 保护注册表路径（如 HKLM:\SOFTWARE\..., HKCU:\...）
+    reg_pattern = r'(?<![a-zA-Z0-9_])((?:HKLM|HKCU|HKCR|HKU|HKEY_[A-Z_]+):[\\/][^\s，。！？；：、`"\'<>\[\]\{\}\(\)\$\^]+)'
+    text = re.sub(reg_pattern, lambda m: _save_token(m.group(0)), text)
+
+    # 0.4 保护 UNC 网络共享路径与 Unix 绝对路径（如 \\server\share, /root/...）
+    unc_unix_pattern = r'(?<![a-zA-Z0-9_])(?:\\\\[a-zA-Z0-9_.-]+[\\/]|/(?:root|home|usr|var|etc|opt|tmp|bin|sbin)/)[^\s，。！？；：、`"\'<>\[\]\{\}\(\)\$\^]+'
+    text = re.sub(unc_unix_pattern, lambda m: _save_token(m.group(0)), text)
+
+    # Phase 0.5: 剥离数学定界符与温度/角度符号规范化
     text = re.sub(r'\$\$([^$]+)\$\$', r'\1', text)
     text = re.sub(r'\$([^$]+)\$', r'\1', text)
     text = re.sub(r'[\r\n]?ightarrow', '→', text)
@@ -165,6 +190,11 @@ def clean_inline_text(text):
     text = re.sub(r'\^', '', text)
     # 彻底清除重复符号与无意义分割线
     text = re.sub(r'[\-+_=~*#|]{2,}', '', text)
+
+    # Phase 8: 恢复所有受保护的代码块与文件路径令牌
+    for key, val in reversed(tokens.items()):
+        text = text.replace(key, val)
+
     return text.strip()
 
 
@@ -391,7 +421,7 @@ def create_docx_document(topic_title, chapter_id, markdown_content, output_path,
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description="Render Markdown to Professional Word Document.")
-    parser.add_argument("--version", action="version", version="docx-speech-briefing-builder v1.2.6")
+    parser.add_argument("--version", action="version", version="docx-speech-briefing-builder v1.2.7")
     parser.add_argument("--title", default="工程技术报告", help="Title")
     parser.add_argument("--topic-id", default="BPVC", help="Topic ID")
     parser.add_argument("--input", required=True, help="Input markdown path")

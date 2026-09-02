@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.2.7] - 2026-09-03
+
+### 🔧 Fixed & Improved
+- **Windows & System File Path Display in Word**: Added token-protection layer in `render_docx.py` to prevent Windows file paths (e.g. `C:\Users\Public\Desktop\...`), registry keys, and inline code from having backslashes and folder segments wiped out by LaTeX cleanup rules.
+- **File Path Speech & Backslash Narration**: Added dedicated `convert_path_to_speech` in `clean_speech_text.py` ensuring all file paths, registry hives, file extensions (`.lnk` -> `点 lnk`, `.exe` -> `点 exe`), and path backslashes `\` are clearly articulated as "反斜杠" in synthesized speech.
+
 ## [1.2.6] - 2026-09-02
 
 ### 🔧 Fixed & Improved

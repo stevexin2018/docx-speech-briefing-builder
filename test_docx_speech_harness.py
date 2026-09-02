@@ -12,7 +12,7 @@ test_docx_speech_harness.py
 6. 复杂工程文本、ASCII 边框行级过滤、LaTeX 嵌套与连字符消歧。
 """
 
-import os
+import os, tempfile
 import sys
 import docx
 
@@ -59,6 +59,11 @@ QW-404.12 / QW-404.33 为并列条款，线能量单位为 kJ/mm。
 ### 1.2 仓库结构与分发实质
 1. 检查环向应力 $\\sigma_\\theta$ 与轴向应力 $\\sigma_z$。
 2. 避免以下符号杂音污染：-------------------- ++++++++++ ========== ~~~~~~~~~
+
+### 1.3 软件与快捷方式资产
+目标快捷方式位于 C:\\Users\\Public\\Desktop\\SOLIDWORKS Visualize Boost 2026.lnk。
+物理安装绝对路径：D:\\Program Files\\SW2026\\SOLIDWORKS Visualize Boost\\
+注册表配置项：HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall
 """
 
 def test_speech_cleaning():
@@ -116,7 +121,7 @@ def test_speech_cleaning():
     print("\n[✓] TTS 语音清洗与工程分式/温度测试全部通过！")
 
 def test_docx_rendering():
-    out_docx = "/tmp/test_harness_output.docx"
+    out_docx = os.path.join(tempfile.gettempdir(), "test_harness_output.docx")
     create_docx_document("UG-27 圆筒壁厚分析", "UG-27", SAMPLE_MARKDOWN, out_docx)
     doc = docx.Document(out_docx)
     
@@ -130,7 +135,9 @@ def test_docx_rendering():
         assert "{}°C" not in p, f"错误：Word 段落中残留空 LaTeX 花括号温标: {p}"
         print("  -", p[:60])
 
-    print("\n[✓] Word 文档渲染测试全部通过！温度正确转换为 °C 且无残留符号行。")
+    assert any("C:\\Users\\Public\\Desktop\\SOLIDWORKS Visualize Boost 2026.lnk" in p for p in paragraphs), "错误：Word 文档未能完整显示 Windows 快捷方式路径！"
+    assert any("D:\\Program Files\\SW2026\\SOLIDWORKS Visualize Boost\\" in p for p in paragraphs), "错误：Word 文档未能完整显示物理安装绝对路径！"
+    print("\n[✓] Word 文档渲染测试全部通过！温度正确转换，符号行彻底清除，文件路径完整无损显示。")
 
 if __name__ == "__main__":
     test_speech_cleaning()
