@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.2.10] - 2026-09-04
+
+### 🔧 Fixed & Improved
+- **Percentage & Percent-Sign Speech Synthesis**: Resolved issue where `%` was omitted or swallowed in TTS synthesis:
+  - **Standalone `%` / Quoted `%`**: Isolated `%` characters (e.g. table headers `合格率(%)`, phrases like `“%”符号`, or isolated units) are now clearly read as **“百分号”** instead of being stripped out by punctuation filtering.
+  - **Comprehensive Percentage Recognition**: Added full support for spaced numbers (`95 %`), fullwidth symbols (`95％`), LaTeX escapes (`95\%`), and signed percentages (`±5%` -> **“正负百分之5”**, `-12.5%` -> **“负百分之12点五”**, `+5%` -> **“正百分之5”**).
+  - **Percentage Range Continuity**: Supports all percentage range notations (`10%~20%`, `10 % ~ 20 %`, `10％～20％`, `10% - 20%`), naturally articulated as **“百分之10至百分之20”**.
+
 ## [1.2.9] - 2026-09-04
 
 ### 🔧 Fixed & Improved

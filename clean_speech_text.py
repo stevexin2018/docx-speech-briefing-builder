@@ -116,6 +116,7 @@ def clean_speech_text(text: str) -> str:
     text = re.sub(r'<br\s*/?>', ' ， ', text, flags=re.IGNORECASE)
     text = re.sub(r'\\sim\b(?:\\,)?', ' 至 ', text)
     text = text.replace(r'\,', ' ')
+    text = text.replace('％', '%').replace(r'\%', '%')
 
     # 1. 预处理：行级过滤与大纲编号转换
     lines = text.split("\n")
@@ -263,11 +264,28 @@ def clean_speech_text(text: str) -> str:
     text = re.sub(fr'([+\-−]?)({decimal_number})\s*({temperature_unit})\s*[~～至]\s*([+\-−]?)({decimal_number})\s*({temperature_unit})', convert_temperature_range, text)
     text = re.sub(fr'([+\-−]?)({decimal_number})\s*({temperature_unit})', convert_temperature_value, text)
     # 8.4 比例与普通数值范围 (2:1 -> 2 比 1, 10-20mm -> 10至20毫米)
-    text = re.sub(r'(\d+(?:点[\w]+)?)\s*[:比]\s*(\d+(?:点[\w]+)?)', r'\1 比 \2', text)
-    text = re.sub(r'(\d+(?:点[\w]+)?)%\s*[~～\-至]\s*(\d+(?:点[\w]+)?)%', r'百分之\1至百分之\2', text)
-    text = re.sub(r'(\d+(?:点[\w]+)?)\s*[~～﹋〜～至]\s*(\d+(?:点[\w]+)?)', r'\1 至 \2', text)
-    text = re.sub(r'(\d+(?:点[\w]+)?)\s*-\s*(\d+(?:点[\w]+)?)', r'\1至\2', text)
-    text = re.sub(r'(\d+(?:点[\w]+)?)%', r'百分之\1', text)
+    # 百分比口语化处理（全面支持带空格、全角％、LaTeX \%、正负号 ±5%/-12.5%/+5% 及范围）
+    def format_percentage_speech(sign: str, num: str) -> str:
+        prefix = ""
+        if sign in ("±", r"\pm"):
+            prefix = "正负 "
+        elif sign in ("-", "−"):
+            prefix = "负 "
+        elif sign == "+":
+            prefix = "正 "
+        return f"{prefix}百分之{num}"
+
+    def convert_percent_range(m):
+        return f" {format_percentage_speech(m.group(1), m.group(2))}至{format_percentage_speech(m.group(3), m.group(4))} "
+
+    def convert_percent_single(m):
+        return f" {format_percentage_speech(m.group(1), m.group(2))} "
+
+    text = re.sub(r"(\d+(?:点[\w]+)?)\s*[:比]\s*(\d+(?:点[\w]+)?)", r"\1 比 \2", text)
+    text = re.sub(r"([+\-−±]?)\s*(\d+(?:点[\w]+)?)\s*%\s*[~～\-至到]\s*([+\-−±]?)\s*(\d+(?:点[\w]+)?)\s*%", convert_percent_range, text)
+    text = re.sub(r"(\d+(?:点[\w]+)?)\s*[~～﹋〜～至]\s*(\d+(?:点[\w]+)?)", r"\1 至 \2", text)
+    text = re.sub(r"(\d+(?:点[\w]+)?)\s*-\s*(\d+(?:点[\w]+)?)", r"\1至\2", text)
+    text = re.sub(r"([+\-−±]?)\s*(\d+(?:点[\w]+)?)\s*%", convert_percent_single, text)
 
     # 9. 希腊字母口语化
     greek_tts_map = {
@@ -346,6 +364,9 @@ def clean_speech_text(text: str) -> str:
     text = text.replace('RT3', ' R T 3 ')
     text = text.replace('RT4', ' R T 4 ')
     text = text.replace('RT', ' R T 无损检测 ')
+
+    # 13.1 独立孤立百分号处理（如表头“合格率(%)”、引述““%”符号”直接读作“百分号”）
+    text = re.sub(r'%', ' 百分号 ', text)
 
     # 14. 清理孤立无用符号（保留汉字、英文字母、数字和核心中文标点）
     text = re.sub(r'[`\*•~_#|\\\'\"<>\(\)\[\]\{\}]', ' ', text)

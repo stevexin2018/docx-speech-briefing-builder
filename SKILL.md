@@ -18,7 +18,7 @@ description: 将 Markdown 深度工程报告自动转换为排版 Word 文档 (.
 
 ## 🛠️ 独立仓库架构与核心文件
 独立仓库位置：`/root/docx-speech-briefing-builder`
-- `version.py`：版本元数据定义 (`__version__ = "1.2.6"`)
+- `version.py`：版本元数据定义 (`__version__ = "1.2.10"`)
 - `CHANGELOG.md`：版本演进与发布历史
 - `render_docx.py`：Word 渲染排版引擎
 - `clean_speech_text.py`：语音口语化转换清洗器（公式发音转换、大纲章节编号口语化、断句停顿、数值范围与符号消歧）

@@ -113,6 +113,15 @@ def test_speech_cleaning():
     assert clean_speech_text("1.5 ～ 2.0") == "1点五 至 2点零。", "行首小数区间被误判为大纲标题！"
     assert "零点四五" in cleaned, "未能正确逐位转换小数！"
 
+    # 验证百分比与百分号口语化 (v1.2.10)
+    assert clean_speech_text("word文档中的“%”怎么没有朗读") == "word文档中的 百分号 怎么没有朗读。", "独立引述百分号未朗读！"
+    assert clean_speech_text("合格率为 95 %") == "合格率为 百分之95。", "带空格百分比未正确朗读！"
+    assert clean_speech_text("合格率为95％") == "合格率为 百分之95。", "全角百分号未正确朗读！"
+    assert clean_speech_text("允许偏差为 ±5%") == "允许偏差为 正负 百分之5。", "正负百分比未正确朗读！"
+    assert clean_speech_text("允许偏差为 -12.5%") == "允许偏差为 负 百分之12点五。", "负百分比未正确朗读！"
+    assert clean_speech_text("区间为 10% ~ 20%") == "区间为 百分之10至百分之20。", "带空格百分比区间未正确朗读！"
+    assert clean_speech_text("表头：合格率(%)") == "表头：合格率 百分号。", "表头独立百分号未朗读！"
+
     # 断言不包含刺耳的重复读音
     assert "至至" not in cleaned, "错误：TTS 文本中存在连续的'至'发音！"
     assert "加加" not in cleaned, "错误：TTS 文本中存在连续的'加'发音！"
