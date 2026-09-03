@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.2.8] - 2026-09-04
+
+### 🔧 Fixed
+- **LaTeX Math vs. Path Backslash Conflict**: Removed premature global `text.replace("\\", " 反斜杠 ")` in `clean_speech_text.py` that erroneously corrupted LaTeX formulas (`\frac`, `\sigma`, `\cdot`, `\tau`, `\text`, `\circ`), which previously caused TTS to read out copious unwanted "反斜杠" in formula-rich reports while Word typography remained clean.
+- **Selective Path Backslash Articulation**: Restricted backslash articulation strictly to verified Windows file paths, registry keys, and UNC paths, protecting all engineering LaTeX syntax and Greek symbols.
+
 ## [1.2.7] - 2026-09-03
 
 ### 🔧 Fixed & Improved

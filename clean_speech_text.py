@@ -167,9 +167,17 @@ def clean_speech_text(text: str) -> str:
     bare_path_pattern = r'(?<![A-Za-z0-9_])(?:[A-Za-z]:[\\/]|(?:HKLM|HKCU|HKCR|HKU|HKEY_[A-Z_]+):[\\/]|\\\\[A-Za-z0-9_.-]+[\\/])[^\s，。！？；：、`"\'<>\[\]{}()]+'
     text = re.sub(bare_path_pattern, lambda m: convert_path_to_speech(m.group(0)), text)
 
-    # 2.3 转换任何残留的反斜杠（确保路径中所有的反斜杠均被自然发音为“反斜杠”）
-    text = re.sub(r'(?<=[A-Za-z0-9_\u4e00-\u9fa5])\\(?=[A-Za-z0-9_\u4e00-\u9fa5])', ' 反斜杠 ', text)
-    text = text.replace('\\', ' 反斜杠 ')
+    # 2.3 杜绝全局反斜杠替换（避免误伤 LaTeX 公式命令如 \frac, \sigma, \cdot, \text 等）
+    # 真实文件系统与注册表路径已在 Phase 2.1 (行内代码) 与 Phase 2.2 (裸露路径) 中由 convert_path_to_speech 精准转换
+    # 仅针对明确非 LaTeX 的 Windows 目录层级残留 (如 Users\Public\Desktop) 进行转换
+    def _safe_path_bs(m):
+        word = m.group(1)
+        # 排除常见 LaTeX 关键字
+        latex_keywords = {"frac", "sqrt", "cdot", "times", "alpha", "beta", "gamma", "delta", "epsilon", "zeta", "eta", "theta", "iota", "kappa", "lambda", "mu", "nu", "xi", "pi", "rho", "sigma", "tau", "upsilon", "phi", "chi", "psi", "omega", "text", "mathrm", "le", "leq", "ge", "geq", "approx", "ne", "neq", "pm", "left", "right", "circ", "degree", "Delta", "Sigma", "Omega", "Phi", "Psi"}
+        if word in latex_keywords:
+            return m.group(0)
+        return " 反斜杠 " + word
+    text = re.sub(r"\\([A-Za-z]+)", _safe_path_bs, text)
 
     # 2.4 移除粗体/斜体/剩余行内代码等 Markdown 标记
     text = re.sub(r'\*\*([^*]+)\*\*', r'\1', text)
@@ -349,7 +357,7 @@ def clean_speech_text(text: str) -> str:
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description="Clean speech text and generate 3x audio.")
-    parser.add_argument("--version", action="version", version="docx-speech-briefing-builder v1.2.7")
+    parser.add_argument("--version", action="version", version="docx-speech-briefing-builder v1.2.8")
     parser.add_argument("--input", help="Input markdown file")
     parser.add_argument("--output", help="Output mp3 file")
     parser.add_argument("--rate", default="+200%", help="Speech rate")
