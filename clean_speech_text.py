@@ -112,6 +112,11 @@ def clean_speech_text(text: str) -> str:
     if not text:
         return ""
 
+    # 0. 预先处理 HTML 标签、LaTeX 范围波浪号与细空格
+    text = re.sub(r'<br\s*/?>', ' ， ', text, flags=re.IGNORECASE)
+    text = re.sub(r'\\sim\b(?:\\,)?', ' 至 ', text)
+    text = text.replace(r'\,', ' ')
+
     # 1. 预处理：行级过滤与大纲编号转换
     lines = text.split("\n")
     cleaned_lines = []
@@ -173,7 +178,7 @@ def clean_speech_text(text: str) -> str:
     def _safe_path_bs(m):
         word = m.group(1)
         # 排除常见 LaTeX 关键字
-        latex_keywords = {"frac", "sqrt", "cdot", "times", "alpha", "beta", "gamma", "delta", "epsilon", "zeta", "eta", "theta", "iota", "kappa", "lambda", "mu", "nu", "xi", "pi", "rho", "sigma", "tau", "upsilon", "phi", "chi", "psi", "omega", "text", "mathrm", "le", "leq", "ge", "geq", "approx", "ne", "neq", "pm", "left", "right", "circ", "degree", "Delta", "Sigma", "Omega", "Phi", "Psi"}
+        latex_keywords = {"frac", "sqrt", "cdot", "times", "alpha", "beta", "gamma", "delta", "epsilon", "zeta", "eta", "theta", "iota", "kappa", "lambda", "mu", "nu", "xi", "pi", "rho", "sigma", "tau", "upsilon", "phi", "chi", "psi", "omega", "text", "mathrm", "le", "leq", "ge", "geq", "approx", "sim", "ne", "neq", "pm", "left", "right", "circ", "degree", "Delta", "Sigma", "Omega", "Phi", "Psi"}
         if word in latex_keywords:
             return m.group(0)
         return " 反斜杠 " + word

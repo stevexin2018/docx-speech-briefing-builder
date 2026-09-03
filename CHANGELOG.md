@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.2.9] - 2026-09-04
+
+### 🔧 Fixed & Improved
+- **Word HTML `<br>` Residual Elimination**: Fixed Markdown tables and paragraphs where raw `<br>`, `<br/>` tags leaked into Word output; now automatically converted to standard cell-level line breaks (`\n` / `<w:br/>`), ensuring clean multiline layout without raw tags.
+- **Wave / Tilde / LaTeX `\sim` Spoken Disambiguation**: Resolved the issue where ranges like `S = 115 \sim 138\,\text{MPa}` or `115 ～ 138` were misread by TTS as "反斜杠 sim" or slash syllables; unified LaTeX `\sim`, Unicode `～`, ASCII `~`, and range hyphens `-` directly into natural Chinese spoken word **"至"** (to).
+- **LaTeX Thin-Space `\,` Cleanup**: Stripped LaTeX thin spaces `\,` into normal space during speech preprocessing, eliminating erroneous pause commas before units (e.g. `138\,\text{MPa}` -> `138 兆帕`).
+- **Unified Range Symbol Option**: Supported standard hyphen `-` and wave `～` interchangeably across typography and speech pipelines.
+
 ## [1.2.8] - 2026-09-04
 
 ### 🔧 Fixed
