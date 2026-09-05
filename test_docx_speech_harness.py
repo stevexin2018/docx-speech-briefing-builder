@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""
+r"""
 test_docx_speech_harness.py
 ===========================
 回归与自进化测试套件 (v1.2.6)：
@@ -112,6 +112,16 @@ def test_speech_cleaning():
     assert "1点五 至 2点零" in cleaned, "未能正确朗读小数区间号‘1.5 ～ 2.0’！"
     assert clean_speech_text("1.5 ～ 2.0") == "1点五 至 2点零。", "行首小数区间被误判为大纲标题！"
     assert "零点四五" in cleaned, "未能正确逐位转换小数！"
+
+    # 验证中文译名、人名与文本间隔号消歧 (v1.2.11)
+    assert clean_speech_text("格蕾塔·齐默·弗里德曼  ") == "格蕾塔 齐默 弗里德曼。", "中文译名中的'·'被误读为'乘以'！"
+    assert clean_speech_text("这是著名照片《胜利之吻》中的女主角格蕾塔·齐默·弗里德曼。") == "这是著名照片 胜利之吻 中的女主角格蕾塔 齐默 弗里德曼。", "句子中中文译名未正确转换！"
+    assert clean_speech_text("卡尔·马克思与列夫·托尔斯泰") == "卡尔 马克思与列夫 托尔斯泰。", "人名间隔号未正确转换！"
+    assert clean_speech_text("作者包括约翰·F·肯尼迪与J·K·罗琳。") == "作者包括约翰 F 肯尼迪与J K 罗琳。", "带英文首字母的译名未正确处理！"
+    assert "乘以" not in clean_speech_text("纳维·斯托克斯方程与欧拉·伯努利梁"), "方程人名连词中的'·'被误读为'乘以'！"
+    assert "乘以" not in clean_speech_text("内部受控工程资料 · 请勿外传"), "文案分隔符中的'·'被误读为'乘以'！"
+    assert clean_speech_text("2 · 3 = 6") == "2 乘以 3 等于 6。", "数字点乘未正确转换为'乘以'！"
+    assert clean_speech_text("P · R") == "P 乘以 R。", "公式变量点乘未正确转换为'乘以'！"
 
     # 验证百分比与百分号口语化 (v1.2.10)
     assert clean_speech_text("word文档中的“%”怎么没有朗读") == "word文档中的 百分号 怎么没有朗读。", "独立引述百分号未朗读！"

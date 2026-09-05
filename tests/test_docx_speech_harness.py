@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""
+r"""
 test_docx_speech_harness.py
 ===========================
 回归与自进化测试套件 (v1.2.6)：
@@ -12,7 +12,7 @@ test_docx_speech_harness.py
 6. 复杂工程文本、ASCII 边框行级过滤、LaTeX 嵌套与连字符消歧。
 """
 
-import os
+import os, tempfile
 import sys
 import docx
 
@@ -59,6 +59,11 @@ QW-404.12 / QW-404.33 为并列条款，线能量单位为 kJ/mm。
 ### 1.2 仓库结构与分发实质
 1. 检查环向应力 $\\sigma_\\theta$ 与轴向应力 $\\sigma_z$。
 2. 避免以下符号杂音污染：-------------------- ++++++++++ ========== ~~~~~~~~~
+
+### 1.3 软件与快捷方式资产
+目标快捷方式位于 C:\\Users\\Public\\Desktop\\SOLIDWORKS Visualize Boost 2026.lnk。
+物理安装绝对路径：D:\\Program Files\\SW2026\\SOLIDWORKS Visualize Boost\\
+注册表配置项：HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall
 """
 
 def test_speech_cleaning():
@@ -108,6 +113,25 @@ def test_speech_cleaning():
     assert clean_speech_text("1.5 ～ 2.0") == "1点五 至 2点零。", "行首小数区间被误判为大纲标题！"
     assert "零点四五" in cleaned, "未能正确逐位转换小数！"
 
+    # 验证中文译名、人名与文本间隔号消歧 (v1.2.11)
+    assert clean_speech_text("格蕾塔·齐默·弗里德曼  ") == "格蕾塔 齐默 弗里德曼。", "中文译名中的'·'被误读为'乘以'！"
+    assert clean_speech_text("这是著名照片《胜利之吻》中的女主角格蕾塔·齐默·弗里德曼。") == "这是著名照片 胜利之吻 中的女主角格蕾塔 齐默 弗里德曼。", "句子中中文译名未正确转换！"
+    assert clean_speech_text("卡尔·马克思与列夫·托尔斯泰") == "卡尔 马克思与列夫 托尔斯泰。", "人名间隔号未正确转换！"
+    assert clean_speech_text("作者包括约翰·F·肯尼迪与J·K·罗琳。") == "作者包括约翰 F 肯尼迪与J K 罗琳。", "带英文首字母的译名未正确处理！"
+    assert "乘以" not in clean_speech_text("纳维·斯托克斯方程与欧拉·伯努利梁"), "方程人名连词中的'·'被误读为'乘以'！"
+    assert "乘以" not in clean_speech_text("内部受控工程资料 · 请勿外传"), "文案分隔符中的'·'被误读为'乘以'！"
+    assert clean_speech_text("2 · 3 = 6") == "2 乘以 3 等于 6。", "数字点乘未正确转换为'乘以'！"
+    assert clean_speech_text("P · R") == "P 乘以 R。", "公式变量点乘未正确转换为'乘以'！"
+
+    # 验证百分比与百分号口语化 (v1.2.10)
+    assert clean_speech_text("word文档中的“%”怎么没有朗读") == "word文档中的 百分号 怎么没有朗读。", "独立引述百分号未朗读！"
+    assert clean_speech_text("合格率为 95 %") == "合格率为 百分之95。", "带空格百分比未正确朗读！"
+    assert clean_speech_text("合格率为95％") == "合格率为 百分之95。", "全角百分号未正确朗读！"
+    assert clean_speech_text("允许偏差为 ±5%") == "允许偏差为 正负 百分之5。", "正负百分比未正确朗读！"
+    assert clean_speech_text("允许偏差为 -12.5%") == "允许偏差为 负 百分之12点五。", "负百分比未正确朗读！"
+    assert clean_speech_text("区间为 10% ~ 20%") == "区间为 百分之10至百分之20。", "带空格百分比区间未正确朗读！"
+    assert clean_speech_text("表头：合格率(%)") == "表头：合格率 百分号。", "表头独立百分号未朗读！"
+
     # 断言不包含刺耳的重复读音
     assert "至至" not in cleaned, "错误：TTS 文本中存在连续的'至'发音！"
     assert "加加" not in cleaned, "错误：TTS 文本中存在连续的'加'发音！"
@@ -116,7 +140,7 @@ def test_speech_cleaning():
     print("\n[✓] TTS 语音清洗与工程分式/温度测试全部通过！")
 
 def test_docx_rendering():
-    out_docx = "/tmp/test_harness_output.docx"
+    out_docx = os.path.join(tempfile.gettempdir(), "test_harness_output.docx")
     create_docx_document("UG-27 圆筒壁厚分析", "UG-27", SAMPLE_MARKDOWN, out_docx)
     doc = docx.Document(out_docx)
     
@@ -130,7 +154,9 @@ def test_docx_rendering():
         assert "{}°C" not in p, f"错误：Word 段落中残留空 LaTeX 花括号温标: {p}"
         print("  -", p[:60])
 
-    print("\n[✓] Word 文档渲染测试全部通过！温度正确转换为 °C 且无残留符号行。")
+    assert any("C:\\Users\\Public\\Desktop\\SOLIDWORKS Visualize Boost 2026.lnk" in p for p in paragraphs), "错误：Word 文档未能完整显示 Windows 快捷方式路径！"
+    assert any("D:\\Program Files\\SW2026\\SOLIDWORKS Visualize Boost\\" in p for p in paragraphs), "错误：Word 文档未能完整显示物理安装绝对路径！"
+    print("\n[✓] Word 文档渲染测试全部通过！温度正确转换，符号行彻底清除，文件路径完整无损显示。")
 
 if __name__ == "__main__":
     test_speech_cleaning()

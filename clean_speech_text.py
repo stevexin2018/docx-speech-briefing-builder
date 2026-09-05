@@ -106,7 +106,7 @@ def convert_path_to_speech(path_str: str) -> str:
 
 def clean_speech_text(text: str) -> str:
     """
-    通用语音清洗引擎 (v1.2.6)：
+    通用语音清洗引擎 (v1.2.11)：
     将工程 Markdown / 特殊字符转为自然流畅、高可读性的口语文本。
     """
     if not text:
@@ -314,6 +314,17 @@ def clean_speech_text(text: str) -> str:
         else:
             text = text.replace(k, v)
 
+    # 9.5 中文译名、人名与文本间隔号消歧（杜绝译名中的“·”误读为“乘以”）
+    # 涵盖常见中点符号：U+00B7 (·), U+2022 (•), U+30FB (・), U+2027 (‧), U+FF65 (･)
+    dot_interpuncts = r'[·•・･‧]'
+    # (1) 英文首字母缩写在中文人名前的情况 (如 J·K·罗琳, F·S·菲茨杰拉德, J·R·R·托尔金)
+    initial_pattern = fr'(?<![A-Za-z0-9])([A-Za-z])\s*{dot_interpuncts}\s*(?=[A-Za-z](?![A-Za-z0-9])(?:\s*{dot_interpuncts}\s*[A-Za-z](?![A-Za-z0-9]))*\s*{dot_interpuncts}\s*[\u4e00-\u9fa5])'
+    while re.search(initial_pattern, text):
+        text = re.sub(initial_pattern, r'\1 ', text)
+    # (2) 紧邻汉字的间隔号（无论前后是否有空格，如 格蕾塔·齐默·弗里德曼, 约翰·F·肯尼迪, C·罗, 内部资料·请勿外传, · 第一点）
+    text = re.sub(fr'(?<=[\u4e00-\u9fa5])\s*{dot_interpuncts}+\s*', ' ', text)
+    text = re.sub(fr'\s*{dot_interpuncts}+\s*(?=[\u4e00-\u9fa5])', ' ', text)
+
     # 10. 比较与运算符号口语化（精准保留 大于、小于、大于等于、小于等于、等于、不等于、除以、乘以）
     # 10.1 比较符
     text = re.sub(r'\\ge\b|\\geq\b|>=|≥', ' 大于等于 ', text)
@@ -325,7 +336,9 @@ def clean_speech_text(text: str) -> str:
     text = re.sub(r'==|(?<=[A-Za-z0-9])\s*=\s*(?=[A-Za-z0-9])|(?<=\s)=\s*(?=\s)', ' 等于 ', text)
 
     # 10.2 乘除法与加减
-    text = re.sub(r'\\times\b|×|\\cdot\b|·', ' 乘以 ', text)
+    text = re.sub(r'\\times\b|×|\\cdot\b', ' 乘以 ', text)
+    # 数学与工程公式/变量间的点乘 (如 P · R, 2 · 3)
+    text = re.sub(r'(?<=[0-9A-Za-zα-ωΑ-Ω\)\]\}])\s*[·⋅]\s*(?=[0-9A-Za-zα-ωΑ-Ω\(\[\{])', ' 乘以 ', text)
     text = re.sub(r'\\pm\b|±', ' 正负 ', text)
     # 除法/比值: 凡是在英文、数字、下标花括号之间的 / 均读作 除以 (如 D/t, P/S, a/b)
     text = re.sub(r'([A-Za-z0-9_\}]+)\s*/\s*([A-Za-z0-9_\{]+)', r'\1 除以 \2', text)
@@ -383,7 +396,7 @@ def clean_speech_text(text: str) -> str:
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description="Clean speech text and generate 3x audio.")
-    parser.add_argument("--version", action="version", version="docx-speech-briefing-builder v1.2.8")
+    parser.add_argument("--version", action="version", version="docx-speech-briefing-builder v1.2.11")
     parser.add_argument("--input", help="Input markdown file")
     parser.add_argument("--output", help="Output mp3 file")
     parser.add_argument("--rate", default="+200%", help="Speech rate")

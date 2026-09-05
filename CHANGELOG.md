@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.2.11] - 2026-09-06
+
+### 🔧 Fixed & Improved
+- **Chinese Translated Names & Interpunct Speech Optimization (间隔号口语化消歧)**:
+  - **Foreign Translated Names**: Resolved the issue where middle dots (·) in foreign translated names (e.g. 格蕾塔·齐默·弗里德曼  , 卡尔·马克思, 列夫·托尔斯泰) were erroneously read out as math multiplication **“乘以”**; now cleanly converted into standard natural spoken spacing and syllables without noise.
+  - **Names with Latin Initials**: Fully supports translated names containing English initials (e.g. 约翰·F·肯尼迪, J·K·罗琳, 乔治·W·布什, C·罗, J·R·R·托尔金), correctly removing the dots and pronouncing initials and surnames naturally.
+  - **Chinese Interpuncts & Bullet Demarcation**: Middle dots in Chinese phrases (中国·北京, 内部受控工程资料 · 请勿外传), book/chapter titles (沁园春·雪), dates (九·一八), and bullet list items (· 第一点) are protected and preserved as natural pauses.
+  - **Strict Math Dot Multiplication Scope**: Confined dot-operator (· / ⋅) multiplication speech synthesis strictly to mathematical variables and numerical formulas (e.g. P · R, 2 · 3, $t = \frac{P \cdot R}{S \cdot E}$), eliminating cross-domain phonetic corruption.
+
 ## [1.2.10] - 2026-09-04
 
 ### 🔧 Fixed & Improved
