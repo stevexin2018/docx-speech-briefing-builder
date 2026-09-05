@@ -15,6 +15,7 @@ clean_speech_text.py
 import re
 import os
 import sys
+from engineering_text import normalize_quantities, cardinal_cn
 
 _BS = '\\\\'
 
@@ -106,7 +107,7 @@ def convert_path_to_speech(path_str: str) -> str:
 
 def clean_speech_text(text: str) -> str:
     """
-    通用语音清洗引擎 (v1.2.11)：
+    通用语音清洗引擎 (v1.2.12)：
     将工程 Markdown / 特殊字符转为自然流畅、高可读性的口语文本。
     """
     if not text:
@@ -192,6 +193,16 @@ def clean_speech_text(text: str) -> str:
     text = re.sub(r'_([^_]+)_', r'\1', text)
     text = re.sub(r'`([^`]+)`', r'\1', text)
 
+    text = normalize_quantities(text)
+    grouped_numbers = set()
+
+    def ungroup_number(match):
+        number = match[0].replace(',', '').replace('，', '')
+        grouped_numbers.add(number)
+        return number
+
+    text = re.sub(r'(?<![A-Za-z0-9_.,，])[1-9]\d{0,2}(?:[,，]\d{3})+(?![0-9]|[,，]\d)', ungroup_number, text)
+
     # 3. 彻底消除连续重复的无意义符号（防止触发重复发音）
     text = re.sub(r'[\-+_=~*#|]{2,}', ' ', text)
 
@@ -216,7 +227,7 @@ def clean_speech_text(text: str) -> str:
     # 4.4 中文条款并列 (如 第 28 条/第 29 条)
     text = re.sub(r'(第\s*\d+\s*条)\s*/\s*(第\s*\d+\s*条)', r'\1 \2', text)
     # 4.5 工程单位中的“/”表示“每”，而不是数学口语“除以” (如 kJ/mm, N/mm2, mm/s)
-    unit_token = r'(?:kJ|MJ|J|kN|N|MPa|GPa|Pa|kg|g|mg|km|cm|mm|m|s|min|h|K|mol|L|mL)(?:[²³23])?'
+    unit_token = r'(?:kJ|MJ|J|kN|N|MPa|GPa|Pa|kg|g|mg|km|cm|mm|m|s|min|h|K|mol|L|mL)(?:[²³⁴234])?'
     text = re.sub(fr'(?<![A-Za-z0-9])({unit_token})\s*/\s*({unit_token})(?![A-Za-z0-9])', r'\1 每 \2', text)
     # 4.6 多字母名称/缩写并列不按除法朗读；单字母公式变量 D/t、P/S 仍留给后续除法规则。
     text = re.sub(r'\b([A-Za-z]{2,})\s*/\s*([A-Za-z]{2,})\b', r'\1 \2', text)
@@ -367,6 +378,12 @@ def clean_speech_text(text: str) -> str:
     text = re.sub(r'([+\-−]?\d+(?:点[零一二三四五六七八九]+)?)\s*°(?![CFcf])', r'\1 度 ', text)
 
     # 13. 单位与工程缩写
+    length_names = {'km': '千米', 'cm': '厘米', 'mm': '毫米', 'um': '微米', 'μm': '微米', 'µm': '微米', 'm': '米'}
+    text = re.sub(
+        r'(?<![A-Za-z_])(km|cm|mm|um|μm|µm|m)([²³⁴])(?![A-Za-z0-9_])',
+        lambda m: ' ' + ({'²': '平方', '³': '立方'}[m[2]] + length_names[m[1]] if m[2] != '⁴' else length_names[m[1]] + '的四次方') + ' ',
+        text,
+    )
     text = text.replace('ASME', 'A S M E ')
     text = text.replace('Appendix', '附录')
     text = text.replace('kJ', ' 千焦 ')
@@ -380,6 +397,9 @@ def clean_speech_text(text: str) -> str:
 
     # 13.1 独立孤立百分号处理（如表头“合格率(%)”、引述““%”符号”直接读作“百分号”）
     text = re.sub(r'%', ' 百分号 ', text)
+
+    for number in grouped_numbers:
+        text = re.sub(r'(?<![A-Za-z0-9_])' + re.escape(number) + r'(?![0-9])', cardinal_cn(number), text)
 
     # 14. 清理孤立无用符号（保留汉字、英文字母、数字和核心中文标点）
     text = re.sub(r'[`\*•~_#|\\\'\"<>\(\)\[\]\{\}]', ' ', text)
@@ -396,7 +416,7 @@ def clean_speech_text(text: str) -> str:
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description="Clean speech text and generate 3x audio.")
-    parser.add_argument("--version", action="version", version="docx-speech-briefing-builder v1.2.11")
+    parser.add_argument("--version", action="version", version="docx-speech-briefing-builder v1.2.12")
     parser.add_argument("--input", help="Input markdown file")
     parser.add_argument("--output", help="Output mp3 file")
     parser.add_argument("--rate", default="+200%", help="Speech rate")

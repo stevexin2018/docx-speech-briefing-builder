@@ -12,6 +12,7 @@ import re
 import os
 import sys
 import docx
+from engineering_text import normalize_quantities
 from docx.shared import Inches, Pt, RGBColor
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.enum.table import WD_TABLE_ALIGNMENT
@@ -117,6 +118,8 @@ def clean_inline_text(text):
         if new_text == text:
             break
         text = new_text
+
+    text = normalize_quantities(text)
 
     # Phase 3: Greek 字母替换
     greek_map = {

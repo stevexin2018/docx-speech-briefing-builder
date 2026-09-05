@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.2.12] - 2026-09-06
+
+### Fixed
+- Remove stray ASCII/full-width commas between quantities and recognized units.
+- Read thousands-grouped numbers as Chinese cardinal values, including decimal fractions and ranges.
+- Render engineering unit powers as Unicode superscripts (mm², mm³, mm⁴), and speak area/volume units naturally.
+- Add regression checks for quantity normalization, compound units, and Word paragraphs/tables.
+
 ## [1.2.11] - 2026-09-06
 
 ### 🔧 Fixed & Improved
