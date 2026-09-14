@@ -77,6 +77,19 @@ def test_speech_cleaning():
     assert "第 1 点 2 节" in cleaned, "错误：二级大纲编号 1.2 未正确转为'第 1 点 2 节'！"
 
     # 验证工程运算符与比较符号
+    # 验证标准代号与修改单斜杠消歧 (v1.2.13)
+    assert clean_speech_text("ISO 5775-1:2014 / Amd 1:2020") == "ISO 5775至1 比 2014 Amd 1 比 2020。", "标准修改单斜杠被误读为除以！"
+    assert clean_speech_text("ETRTO/ISO") == "ETRTO ISO。", "并列标准组织斜杠被误读为除以或词内RT被误伤！"
+    assert clean_speech_text("GB/T 1702-2017") == "GB T 1702至2017。", "国标推荐代号GB/T被误读为除以！"
+    assert clean_speech_text("QB/T 2192") == "QB T 2192。", "轻工标准代号QB/T被误读为除以！"
+    assert clean_speech_text("HG/T 2003") == "HG T 2003。", "化工标准代号HG/T被误读为除以！"
+    assert clean_speech_text("DB11/T 1234") == "DB11 T 1234。", "地方标准代号DB11/T被误读为除以！"
+    assert clean_speech_text("GB/Z 12345") == "GB Z 12345。", "指导性标准GB/Z被误读为除以！"
+    assert clean_speech_text("T/CSAE 123") == "T CSAE 123。", "团体标准T/CSAE被误读为除以！"
+    assert clean_speech_text("ISO/IEC 27001") == "ISO IEC 27001。", "ISO/IEC被误读为除以！"
+    assert clean_speech_text("ISO/TR 12345") == "ISO TR 12345。", "ISO/TR被误读为除以！"
+    assert clean_speech_text("EN 13445-3:2021 / A1:2023") == "EN 13445至3 比 2021 A1 比 2023。", "EN修改单斜杠被误读为除以！"
+
     assert "D 除以 t 大于 80" in cleaned, "错误：D/t > 80 未正确转换为'D 除以 t 大于 80'！"
     assert "P 除以 S 小于等于" in cleaned, "错误：P/S <= 0.385 未正确转换为'P 除以 S 小于等于'！"
     assert "Part 5 点 2 点 4 5 点 4 点 3" in cleaned, "错误：Part 5.2.4/5.4.3 斜杠未正确省略停顿！"

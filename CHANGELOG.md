@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.2.13] - 2026-09-14
+
+### 🔧 Fixed & Improved
+- **Standard Code & Amendment Slash Disambiguation (标准代号与修改单斜杠消歧)**:
+  - **Standard Code Suffixes**: Resolved issue where slashes in standard codes (e.g. `GB/T`, `QB/T`, `HG/T`, `JB/T`, `DB11/T`, `GB/Z`, `T/CSAE`) were erroneously read out as math division **“除以”**; now cleanly converted into standard natural spoken letters and pause (e.g. `GB T`, `QB T`, `HG T`, `DB11 T`, `GB Z`, `T CSAE`).
+  - **International Standard Organizations & Combined Specs**: Standard body combinations such as `ETRTO/ISO`, `ISO/IEC`, `ISO/TR`, `ISO/TS`, `IEC/TS` preserve slashes as natural separators without triggering math division.
+  - **Standard Amendments & Corrigenda**: Slashes before standard revision/amendment tags (e.g. `ISO 5775-1:2014 / Amd 1:2020`, `EN 13445-3:2021 / A1:2023`, `BS EN 1234 / Cor 1`) are cleanly stripped into natural pauses.
+  - **Word-Boundary Isolation for RT NDT Acronym**: Constrained the `RT` -> `R T 无损检测` replacement strictly to word boundaries (`\bRT\b`, `\bRT[1-4]\b`), eliminating phonetic corruption in words containing "RT" such as `ETRTO` (which was previously corrupted into `ET R T 无损检测 O`).
+  - **Strict Math Division Integrity**: Guaranteed that engineering variable ratios and math formulas (e.g. `D/t > 80`, `P/S <= 0.385`, `d/D ≈ 0.465`, `a/b`) strictly retain **“除以”** (divided by).
+
 ## [1.2.12] - 2026-09-06
 
 ### Fixed

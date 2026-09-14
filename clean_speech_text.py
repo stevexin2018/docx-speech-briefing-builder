@@ -229,6 +229,15 @@ def clean_speech_text(text: str) -> str:
     # 4.5 工程单位中的“/”表示“每”，而不是数学口语“除以” (如 kJ/mm, N/mm2, mm/s)
     unit_token = r'(?:kJ|MJ|J|kN|N|MPa|GPa|Pa|kg|g|mg|km|cm|mm|m|s|min|h|K|mol|L|mL)(?:[²³⁴234])?'
     text = re.sub(fr'(?<![A-Za-z0-9])({unit_token})\s*/\s*({unit_token})(?![A-Za-z0-9])', r'\1 每 \2', text)
+
+    # 4.5.1 标准修改单/增补版/勘误表斜杠消歧 (如 ISO 5775-1:2014 / Amd 1:2020, EN 13445-3:2021 / A1:2023, BS EN 1234 / Cor 1)
+    text = re.sub(r'(?<=[\d\w])\s*/\s*(?=(?:Amd|AMD|Cor|COR|AC|Addendum|Errata)\b|[Aa]\d+\b)', ' ', text)
+
+    # 4.5.2 标准代号及标准组织/技术规范代号中的斜杠消歧 (如 GB/T, QB/T, HG/T, JB/T, DB11/T, GB/Z, T/CSAE, ISO/IEC, ISO/TR, ISO/TS, ETRTO/ISO)
+    # (a) 左侧多字母/数字组合，右侧 1~4 字母后缀 (如 GB/T, QB/T, HG/T, DB11/T, GB/Z, ISO/IEC, ISO/TR, ETRTO/ISO)
+    text = re.sub(r'(?<![A-Za-z0-9_])([A-Za-z]{2,}\d*|[A-Za-z]+\d+)\s*/\s*([A-Za-z]{1,4})(?![A-Za-z0-9_])', r'\1 \2', text)
+    # (b) 左侧单/双字母前缀团体/地方标准 (如 T/CSAE, T/CAS, T/CEC)
+    text = re.sub(r'(?<![A-Za-z0-9_])([TtQqDdBb]{1,2})\s*/\s*([A-Za-z]{2,})(?![A-Za-z0-9_])', r'\1 \2', text)
     # 4.6 多字母名称/缩写并列不按除法朗读；单字母公式变量 D/t、P/S 仍留给后续除法规则。
     text = re.sub(r'\b([A-Za-z]{2,})\s*/\s*([A-Za-z]{2,})\b', r'\1 \2', text)
     # 4.7 带材料体系标签的并列牌号 (如 Alloy 800HT / UNS N08811) 省略斜杠并自然停顿。
@@ -389,11 +398,8 @@ def clean_speech_text(text: str) -> str:
     text = text.replace('kJ', ' 千焦 ')
     text = text.replace('MPa', ' 兆帕 ')
     text = text.replace('mm', ' 毫米 ')
-    text = text.replace('RT1', ' R T 1 ')
-    text = text.replace('RT2', ' R T 2 ')
-    text = text.replace('RT3', ' R T 3 ')
-    text = text.replace('RT4', ' R T 4 ')
-    text = text.replace('RT', ' R T 无损检测 ')
+    text = re.sub(r'\bRT([1-4])\b', r' R T \1 ', text)
+    text = re.sub(r'\bRT\b', ' R T 无损检测 ', text)
 
     # 13.1 独立孤立百分号处理（如表头“合格率(%)”、引述““%”符号”直接读作“百分号”）
     text = re.sub(r'%', ' 百分号 ', text)
