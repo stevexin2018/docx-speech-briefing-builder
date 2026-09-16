@@ -247,6 +247,16 @@ def clean_speech_text(text: str) -> str:
     material_grade = r'(?=[A-Za-z0-9.-]*[A-Za-z])(?=[A-Za-z0-9.-]*\d)[A-Za-z0-9.-]+'
     text = re.sub(fr'\b({material_grade})\s*/\s*({material_grade})\b', r'\1 \2', text)
 
+    # 4.5.3 英制单位斜杠消歧 (如 J/in, J/in., kJ/in, in/min, in./min, in/s, in./s)
+    text = re.sub(r'(?<![A-Za-z0-9])([kK]?[jJ]|kJ|J)\s*/\s*in(?:\.|\b)', r'\1 每 英寸 ', text)
+    text = re.sub(r'(?<![A-Za-z0-9])in(?:\.|\b)\s*/\s*(min|s|h)\b', r' 英寸 每 \1 ', text)
+    text = re.sub(r'(?<![A-Za-z0-9])in\s*\^?\s*2\b|\bsq\.?\s*in(?:\.|\b)', ' 平方英寸 ', text, flags=re.IGNORECASE)
+    text = re.sub(r'(?<![A-Za-z0-9])in\s*\^?\s*3\b|\bcu\.?\s*in(?:\.|\b)', ' 立方英寸 ', text, flags=re.IGNORECASE)
+
+    # 4.9 管件/法兰型号中的英寸规格消歧 (如 BL2"-150, WN2"-150, SO1/2"-300)
+    text = re.sub(r'\b([A-Za-z]+)\s*(\d+(?:[ \t\-]+\d+\s*/\s*\d+|\s*/\s*\d+)?)\s*(?:\"|″|”)\s*-\s*(\d+)', r'\1 \2 英寸 - \3', text)
+
+
     # 5. 标准与条款口语发音
     text = re.sub(r'Sec\s+VIII-1', 'Sec VIII 第 1 卷', text, flags=re.IGNORECASE)
     text = re.sub(r'UG-(\d+)', r'U G 第 \1 条', text)
@@ -262,6 +272,23 @@ def clean_speech_text(text: str) -> str:
         parts = m.group(0).split('.')
         return ' 点 '.join(parts)
     text = re.sub(r'\b\d+(?:\.\d+){2,}\b', convert_multi_dot, text)
+
+    # 6.5 NPS 与英寸单位口语化转换（确保在小数与工程分式清洗前精准捕获）
+    # 6.5.1 NPS 带分数规格 (如 NPS 1 1/4", NPS 1-1/4", NPS 1 1/4 in, NPS 1 1/4)
+    text = re.sub(r'\bNPS\s*(\d+)[ \t\-]+(\d+)\s*/\s*(\d+)\s*(?:\"|″|”|in(?:\.|\b)|inch(?:es)?\b)?', r'NPS \1 \2/\3 英寸 ', text, flags=re.IGNORECASE)
+    # 6.5.2 NPS 纯数字分数规格 (如 NPS 1/4", NPS 1/4 in, NPS 1/4, NPS 1/2)
+    text = re.sub(r'\bNPS\s*(\d{1,3})\s*/\s*(\d{1,3})\s*(?:\"|″|”|in(?:\.|\b)|inch(?:es)?\b)?', r'NPS \1/\2 英寸 ', text, flags=re.IGNORECASE)
+    # 6.5.3 NPS 整数与小数规格 (如 NPS 24", NPS 24 in, NPS 24, NPS 2)
+    text = re.sub(r'\bNPS\s*(\d+(?:\.\d+)?)\s*(?:\"|″|”|in(?:\.|\b)|inch(?:es)?\b)?(?![ \t\-]*\d*\s*/)', r'NPS \1 英寸 ', text, flags=re.IGNORECASE)
+
+    # 6.5.4 独立带分数 + 英寸单位/符号 (如 1 1/4", 1-1/4", 1 1/4 in, 1-1/4 in.)
+    text = re.sub(r'(?<![A-Za-z0-9.])(\d+)[ \t\-]+(\d+)\s*/\s*(\d+)\s*(?:\"|″|”|in(?:\.|\b)|inch(?:es)?\b)', r'\1 \2/\3 英寸 ', text)
+    # 6.5.5 独立简单分数 + 英寸单位/符号 (如 1/4", 3/8 in, 3/8 in., 1/2")
+    text = re.sub(r'(?<![A-Za-z0-9./])(\d{1,3})\s*/\s*(\d{1,3})\s*(?:\"|″|”|in(?:\.|\b)|inch(?:es)?\b)', r'\1/\2 英寸 ', text)
+    # 6.5.6 独立整数/小数 + 英寸单位/符号 (如 24", 24 in, 24 in., 24 inch, 24 inches, 0.5", 0.5 in)
+    text = re.sub(r'(?<![A-Za-z0-9.])(\d+(?:\.\d+)?)\s*(?:\"|″|”)(?![A-Za-z0-9])', r'\1 英寸 ', text)
+    text = re.sub(r'(?<![A-Za-z0-9.])(\d+(?:\.\d+)?)\s*(?:in(?:\.|\b)|inch(?:es)?\b)', r'\1 英寸 ', text)
+
 
     # 7. 小数点逐位发音 (如 0.385 -> 零点三八五)
     digit_map = {'0':'零', '1':'一', '2':'二', '3':'三', '4':'四', '5':'五', '6':'六', '7':'七', '8':'八', '9':'九'}
@@ -387,7 +414,7 @@ def clean_speech_text(text: str) -> str:
     text = re.sub(r'([+\-−]?\d+(?:点[零一二三四五六七八九]+)?)\s*°(?![CFcf])', r'\1 度 ', text)
 
     # 13. 单位与工程缩写
-    length_names = {'km': '千米', 'cm': '厘米', 'mm': '毫米', 'um': '微米', 'μm': '微米', 'µm': '微米', 'm': '米'}
+    length_names = {'km': '千米', 'cm': '厘米', 'mm': '毫米', 'um': '微米', 'μm': '微米', 'µm': '微米', 'm': '米', 'in': '英寸'}
     text = re.sub(
         r'(?<![A-Za-z_])(km|cm|mm|um|μm|µm|m)([²³⁴])(?![A-Za-z0-9_])',
         lambda m: ' ' + ({'²': '平方', '³': '立方'}[m[2]] + length_names[m[1]] if m[2] != '⁴' else length_names[m[1]] + '的四次方') + ' ',
@@ -422,7 +449,7 @@ def clean_speech_text(text: str) -> str:
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description="Clean speech text and generate 3x audio.")
-    parser.add_argument("--version", action="version", version="docx-speech-briefing-builder v1.2.12")
+    parser.add_argument("--version", action="version", version="docx-speech-briefing-builder v1.2.14")
     parser.add_argument("--input", help="Input markdown file")
     parser.add_argument("--output", help="Output mp3 file")
     parser.add_argument("--rate", default="+200%", help="Speech rate")

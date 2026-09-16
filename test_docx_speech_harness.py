@@ -108,6 +108,10 @@ def test_speech_cleaning():
     assert "NPS 一又四分之一" in cleaned, "错误：NPS 1 1/4 未正确转为'NPS 一又四分之一'！"
     assert "八分之三" in cleaned, "错误：3/8 in 未正确转为'八分之三'！"
     assert "一又四分之一" in cleaned, "错误：1-1/4 in 未正确转为'一又四分之一'！"
+    assert "NPS 四分之一 英寸" in cleaned, "错误：NPS 1/4 未正确转为'NPS 四分之一 英寸'！"
+    assert "NPS 一又四分之一 英寸" in cleaned, "错误：NPS 1 1/4 未正确转为'NPS 一又四分之一 英寸'！"
+    assert "八分之三 英寸" in cleaned, "错误：3/8 in 未正确转为'八分之三 英寸'！"
+    assert "一又四分之一 英寸" in cleaned, "错误：1-1/4 in 未正确转为'一又四分之一 英寸'！"
 
     # 验证温标与区间
     assert "5 摄氏度" in cleaned, "错误：温度 +5°C / +5^ 未能正确口语化为'5 摄氏度'！"
@@ -150,6 +154,16 @@ def test_speech_cleaning():
     assert "加加" not in cleaned, "错误：TTS 文本中存在连续的'加'发音！"
     assert "等于等于" not in cleaned, "错误：TTS 文本中存在连续的'等于'发音！"
     assert "+---" not in cleaned, "错误：TTS 文本中残留 ASCII 边框！"
+
+    # 验证 NPS 24" 与各类英制/管径发音
+    assert "NPS 24 英寸" in clean_speech_text('采用 NPS 24" 管道规格'), "错误：NPS 24\" 未转为'NPS 24 英寸'！"
+    assert "NPS 24 英寸" in clean_speech_text("采用 NPS 24 管道规格"), "错误：NPS 24 未转为'NPS 24 英寸'！"
+    assert "24 英寸" in clean_speech_text('管径 24" 管道以及 24 in 管道'), "错误：24\" 或 24 in 未转为'24 英寸'！"
+    assert "二分之一 英寸" in clean_speech_text('壁厚 1/2" 接管'), "错误：1/2\" 未转为'二分之一 英寸'！"
+    assert "零点五 英寸" in clean_speech_text('壁厚 0.5 in 或 0.5"'), "错误：0.5 in / 0.5\" 未转为'零点五 英寸'！"
+    assert "BL 2 英寸 150 RF" in clean_speech_text('盲板 BL2"-150 RF'), "错误：BL2\"-150 RF 未转为'BL 2 英寸 150 RF'！"
+    assert "J 每 英寸" in clean_speech_text("线能量 50 J/in. 以及 50 J/in"), "错误：J/in. 未转为'J 每 英寸'！"
+    assert "英寸 每 min" in clean_speech_text("焊接速度 10 in./min"), "错误：in./min 未转为'英寸 每 min'！"
     print("\n[✓] TTS 语音清洗与工程分式/温度测试全部通过！")
 
 def test_docx_rendering():

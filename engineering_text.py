@@ -2,7 +2,7 @@
 
 import re
 
-UNIT = r'(?:MPa|GPa|kPa|Pa|kJ|MJ|J|kN|N|kg|mg|g|km|cm|mm|um|μm|µm|m|ms|min|s|h|mol|mL|L|K|°C|°F|℃)'
+UNIT = r'(?:MPa|GPa|kPa|Pa|kJ|MJ|J|kN|N|kg|mg|g|km|cm|mm|um|μm|µm|m|ms|min|s|h|mol|mL|L|K|°C|°F|℃|in)'
 POWER = r'(?:\^\{([234])\}|\^([234])|([234²³⁴]))'
 UNIT_POWER = re.compile(r'(?<![A-Za-z_])(' + UNIT + ')' + POWER + r'(?![A-Za-z0-9_])')
 

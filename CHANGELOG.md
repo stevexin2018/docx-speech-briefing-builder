@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.2.14] - 2026-09-16
+
+### 🚀 Added & Improved
+- **NPS & Inch Unit Spoken Normalization (TTS)**:
+  - **NPS Pipe Size Expressions**: Resolved issue where pipe sizes such as `NPS 24"`, `NPS 24 in`, or standard `NPS 24` were spoken without units or lost the inch mark; now naturally and accurately spoken as **“NPS 24 英寸”**.
+  - **Fractional & Mixed NPS**: Supported fractional pipe sizing including `NPS 1/4"`, `NPS 1/4` (**“NPS 四分之一 英寸”**) and `NPS 1 1/4"`, `NPS 1-1/4` (**“NPS 一又四分之一 英寸”**).
+  - **Double Quote (") & Prime (″) as Inch Symbol**: Fixed parser issue where trailing double quotes after digits or fractions (`24"`, `1/2"`, `3/8"`, `1-1/4"`, `0.5"`) were treated as generic punctuation and discarded; now accurately recognized as inches (**“24 英寸”**, **“二分之一 英寸”**, **“八分之三 英寸”**).
+  - **English Unit Words (`in`, `in.`, `inch`, `inches`)**: Solved issue where `3/8 in`, `1-1/4 in`, `24 in` were left as the English word "in" and mispronounced as `/ɪn/`; now systematically translated into **“英寸”** (**“八分之三 英寸”**, **“一又四分之一 英寸”**, **“24 英寸”**).
+  - **Compound & Engineering Units**: Supported heat input and velocity units like `J/in.`, `kJ/in` (**“焦耳 每 英寸”** / **“千焦 每 英寸”**), `in./min` (**“英寸 每 分钟”**), and area/volume powers (`in²` -> **“平方英寸”**, `in³` -> **“立方英寸”**).
+  - **Flange & Component Model Codes**: Supported pipe fitting model codes containing inch symbols (e.g. `BL2"-150 RF` -> **“BL 2 英寸 150 RF”**, `WN2"-150` -> **“WN 2 英寸 150”**).
+
 ## [1.2.13] - 2026-09-14
 
 ### 🔧 Fixed & Improved
