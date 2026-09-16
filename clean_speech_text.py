@@ -116,8 +116,20 @@ def clean_speech_text(text: str) -> str:
     # 0. 预先处理 HTML 标签、LaTeX 范围波浪号与细空格
     text = re.sub(r'<br\s*/?>', ' ， ', text, flags=re.IGNORECASE)
     text = re.sub(r'\\sim\b(?:\\,)?', ' 至 ', text)
-    text = text.replace(r'\,', ' ')
+    text = text.replace(r'\,', ' ').replace(r'\;', ' ').replace(r'\:', ' ').replace(r'\!', ' ').replace(r'\ ', ' ')
+    text = re.sub(r'\\(?:quad|qquad|enspace|thinspace)\b', ' ', text)
     text = text.replace('％', '%').replace(r'\%', '%')
+
+    # 0.1 微米单位预转换（必须在希腊字母 μ 替换前执行，杜绝 μm 被拆读为“缪 m”）
+    # 涵盖: \mu\text{m}, \mu\mathrm{m}, \mum, \upmu\text{m}, \upmum, μm, µm, um
+    text = re.sub(r'\\(?:mu|upmu)\s*(?:\\(?:text|mathrm))?\{?m\}?|\\(?:mu|upmu)m\b', ' 微米 ', text)
+    text = re.sub(r'(?<![A-Za-z0-9_])(?:μ|µ)m(?![A-Za-z0-9_])', ' 微米 ', text)
+    text = re.sub(r'(?<=\d)[ \t]*[,，]?[ \t]*(?:μm|µm|um)(?![A-Za-z0-9_])', ' 微米 ', text)
+
+    # 0.2 Ra/Rz 等表面粗糙度符号与非法夹带逗号清理（杜绝 Ra, 3.2 或 6.3, 杂音）
+    text = re.sub(r'\b(Ra|Rz|Ry|Rq|Sa|Sz)[ \t]*[,，][ \t]*', r'\1 ', text)
+    text = re.sub(r'(?<=\d)[ \t]*[,，][ \t]*(?=[~～\-\+至到])', ' ', text)
+    text = re.sub(r'(?<=\d)[ \t]*[,，][ \t]*(?=[\)\]\}\s]*$|[\)\]\}])', '', text)
 
     # 1. 预处理：行级过滤与大纲编号转换
     lines = text.split("\n")
@@ -141,7 +153,8 @@ def clean_speech_text(text: str) -> str:
 
         # 大纲与章节编号口语化转换（杜绝 1. 被吞或 1.2 读成 2）
         # 1.1 多级大纲编号 (如 1.1, 1.2, 2.1.3)
-        l = re.sub(r'^(\d+(?:\.\d+)+)[ \t]+(?![~～\-至])(?=\S)', convert_section_number, l)
+        # 避免将以小数开头的工程参数/单位行（如 0.8 μm, 0.45 mm）误判为章节标题编号
+        l = re.sub(r'^(?!0\.\d+)(\d+(?:\.\d+)+)[ \t]+(?![~～\-至])(?=(?:[^\d\s]|[\u4e00-\u9fa5]))(?!\b(?:mm|cm|m|km|um|μm|µm|in|MPa|GPa|kPa|Pa|kJ|J|kg|g|mg|s|min|h|°C|°F|℃|N|kN)\b)', convert_section_number, l)
         # 1.2 顶级大纲/有序列表 (如 1., 2., 1、, 1))
         l = re.sub(r'^(\d+)(?:[、\)]|\.(?!\d))[ \t]*', r'第 \1 点 ', l)
 
@@ -449,7 +462,7 @@ def clean_speech_text(text: str) -> str:
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description="Clean speech text and generate 3x audio.")
-    parser.add_argument("--version", action="version", version="docx-speech-briefing-builder v1.2.14")
+    parser.add_argument("--version", action="version", version="docx-speech-briefing-builder v1.2.15")
     parser.add_argument("--input", help="Input markdown file")
     parser.add_argument("--output", help="Output mp3 file")
     parser.add_argument("--rate", default="+200%", help="Speech rate")

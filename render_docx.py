@@ -92,6 +92,19 @@ def clean_inline_text(text):
     text = re.sub(r'[\r\n]?ight', '', text)
     # 清除所有空 LaTeX 花括号（如 {}°C -> °C）。
     text = re.sub(r'\{\s*\}', '', text)
+
+    # LaTeX 各种空格命令规范化（重点将 \, 细空格转为空格，杜绝后序误吞反斜杠后残留孤立逗号“,”）
+    text = text.replace(r'\,', ' ').replace(r'\;', ' ').replace(r'\:', ' ').replace(r'\!', ' ').replace(r'\ ', ' ')
+    text = re.sub(r'\\(?:quad|qquad|enspace|thinspace)\b', ' ', text)
+
+    # 规范化微米单位：\mu\text{m} / \mu\mathrm{m} / \mum -> μm（防止 Phase 2 剥离花括号后留下未匹配的 \mum 被整体清空）
+    text = re.sub(r'\\(?:mu|upmu)\s*(?:\\(?:text|mathrm))?\{?m\}?|\\(?:mu|upmu)m\b', 'μm', text)
+
+    # 清理粗糙度符号（Ra/Rz等）与工程数值间误留的孤立逗号
+    text = re.sub(r'\b(Ra|Rz|Ry|Rq|Sa|Sz)[ \t]*[,，][ \t]*', r'\1 ', text)
+    text = re.sub(r'(?<=\d)[ \t]*[,，][ \t]*(?=[~～\-\+至到])', ' ', text)
+    text = re.sub(r'(?<=\d)[ \t]*[,，][ \t]*(?=[\)\]\}\s]*$|[\)\]\}])', '', text)
+    text = re.sub(r'(?<=\d)[ \t]*[,，][ \t]*(?=(?:μm|µm|um|mm|cm|m|in)\b)', ' ', text)
     # 温度与度数 LaTeX / 简写结构转换 (如 +5^\circ\text{C}, 5^\circ C, 5^{\circ}\text{C}, 5\degree C -> 5°C)
     text = re.sub(r'\^?\{?' + _BS + r'(?:circ|degree)\}?\s*(?:' + _BS + r'(?:text|mathrm)?\{?([CFcf])\}?|([CFcf]))', r'°\1\2', text)
     text = re.sub(r'\^?\{?' + _BS + r'(?:circ|degree)\}?', '°', text)
@@ -190,6 +203,7 @@ def clean_inline_text(text):
     text = text.replace('\\', '')
     text = text.replace('$', '')
     text = text.replace('^°', '°')
+    text = re.sub(r'[ 	]+', ' ', text)
     text = re.sub(r'\^', '', text)
     # 彻底清除重复符号与无意义分割线
     text = re.sub(r'[\-+_=~*#|]{2,}', '', text)

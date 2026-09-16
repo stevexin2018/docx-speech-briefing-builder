@@ -151,6 +151,13 @@ def test_speech_cleaning():
     assert "BL 2 英寸 150 RF" in clean_speech_text('盲板 BL2"-150 RF'), "错误：BL2\"-150 RF 未转为'BL 2 英寸 150 RF'！"
     assert "J 每 英寸" in clean_speech_text("线能量 50 J/in. 以及 50 J/in"), "错误：J/in. 未转为'J 每 英寸'！"
     assert "英寸 每 min" in clean_speech_text("焊接速度 10 in./min"), "错误：in./min 未转为'英寸 每 min'！"
+
+    # 验证表面粗糙度与微米单位发音（v1.2.15）
+    assert "Ra 3点二至6点三 微米" in clean_speech_text("Ra 3.2 - 6.3 μm"), "错误：Ra 3.2 - 6.3 μm 未转为'Ra 3点二至6点三 微米'！"
+    assert "Ra 3点二 至 6点三 微米" in clean_speech_text("$Ra\\,3.2 \\sim 6.3\\,\\mu\\text{m}$"), "错误：LaTeX Ra 粗糙度未转为'Ra 3点二 至 6点三 微米'！"
+    assert "Ra 3点二 至 6点三" in clean_speech_text("Ra,3.2 ～ 6.3,"), "错误：Ra,3.2 ～ 6.3, 杂音逗号未被正确清除！"
+    assert "10 微米" in clean_speech_text("10, μm 以及 10,um"), "错误：带逗号的微米单位未转为'10 微米'！"
+    assert "零点八 微米" in clean_speech_text("0.8 μm 表面光洁度"), "错误：行首小数微米单位被误读为章节编号！"
     print("\n[✓] TTS 语音清洗与工程分式/温度测试全部通过！")
 
 def test_docx_rendering():

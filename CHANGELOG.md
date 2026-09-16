@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.2.15] - 2026-09-16
+
+### 🔧 Fixed & Improved
+- **Micrometer & Roughness Spoken Normalization (TTS)**:
+  - **Micrometer Units (`μm`, `µm`, `um`)**: Resolved issue where `Ra 3.2 - 6.3 μm` was erroneously read out as **“缪 m”** due to Greek letter `μ` (`\mu`) matching before unit translation; now pre-parsed and naturally spoken as **“微米”** (**“Ra 3点二至6点三 微米”**).
+  - **LaTeX Micrometer (`\mu	ext{m}`, `\mu\mathrm{m}`, `\mum`)**: Automatically normalized in both TTS and Word rendering.
+  - **Rogue Comma Suppression in Speech**: Cleaned rogue commas generated from LaTeX thin spaces or formula artifacts (e.g. `Ra, 3.2` or `Ra,3.2 ～ 6.3,`), preventing comma pauses in speech.
+  - **Leading Decimal Protection**: Constrained outline/section numbering regex to prevent decimal numbers with engineering units at line beginnings (e.g. `0.8 μm`) from being misread as section headings (**“第 0 点 8 节”**).
+
+- **Word (.docx) Typography & LaTeX Space Repair**:
+  - **LaTeX Thin Spaces (`\,`, `\;`, `\:`, `\!`)**: Automatically converts LaTeX thin space commands to standard spaces in Phase 0.5. Completely eliminates the bug where `\,` had its backslash stripped in late cleanup, resulting in unwanted literal commas in Word body text (e.g. `$Ra\,3.2 \sim 6.3\,\mu	ext{m}$` previously rendering as `Ra,3.2 ～ 6.3,`).
+  - **Unit Preservation in Word**: Prevents `\mum` from being wiped out by LaTeX command cleanup, ensuring `μm` displays clearly in `.docx` documents.
+  - **Roughness & Range Comma Stripping**: Strips erroneous commas immediately following roughness symbols (`Ra,`, `Rz,`) or preceding range separators and units (`6.3, ～` -> `6.3 ～`, `10, μm` -> `10 μm`).
+
 ## [1.2.14] - 2026-09-16
 
 ### 🚀 Added & Improved
