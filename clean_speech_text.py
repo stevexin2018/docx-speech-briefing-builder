@@ -340,12 +340,13 @@ def clean_speech_text(text: str) -> str:
 
     def convert_percent_single(m):
         return f" {format_percentage_speech(m.group(1), m.group(2))} "
+    num_pat = r"(?:(?:\d+|[零一二三四五六七八九十百千万]+)(?:点[\w]+)?|\d+)"
 
     text = re.sub(r"(\d+(?:点[\w]+)?)\s*[:比]\s*(\d+(?:点[\w]+)?)", r"\1 比 \2", text)
-    text = re.sub(r"([+\-−±]?)\s*(\d+(?:点[\w]+)?)\s*%\s*[~～\-至到]\s*([+\-−±]?)\s*(\d+(?:点[\w]+)?)\s*%", convert_percent_range, text)
-    text = re.sub(r"(\d+(?:点[\w]+)?)\s*[~～﹋〜～至]\s*(\d+(?:点[\w]+)?)", r"\1 至 \2", text)
-    text = re.sub(r"(\d+(?:点[\w]+)?)\s*-\s*(\d+(?:点[\w]+)?)", r"\1至\2", text)
-    text = re.sub(r"([+\-−±]?)\s*(\d+(?:点[\w]+)?)\s*%", convert_percent_single, text)
+    text = re.sub(r"([+\-−±]?)\s*(" + num_pat + r")\s*%\s*[~～\-至到]\s*([+\-−±]?)\s*(" + num_pat + r")\s*%", convert_percent_range, text)
+    text = re.sub(r"(?<!百分之)(\d+(?:点[\w]+)?)\s*[~～﹋〜～至]\s*(?<!百分之)(\d+(?:点[\w]+)?)", r"\1 至 \2", text)
+    text = re.sub(r"(?<!百分之)(\d+(?:点[\w]+)?)\s*-\s*(?<!百分之)(\d+(?:点[\w]+)?)", r"\1至\2", text)
+    text = re.sub(r"([+\-−±]?)\s*(" + num_pat + r")\s*%", convert_percent_single, text)
 
     # 9. 希腊字母口语化
     greek_tts_map = {

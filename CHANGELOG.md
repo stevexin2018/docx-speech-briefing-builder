@@ -1,3 +1,11 @@
+## [1.2.17] - 2026-09-22
+
+### 🔧 Fixed
+- **Decimal Percentage Spoken Order (TTS)**:
+  - Fixed an issue where decimal percentages like `0.35%`, `0.040%`, `0.43%`, `0.003%~0.005%` had their reading order reversed into “零点三五 百分号” instead of natural spoken Chinese “百分之零点三五”.
+  - Expanded percentage regex patterns (`num_pat`) to correctly capture Chinese decimal strings (`零点...`, `...点...`) converted in preceding passes.
+  - Ensured range separators and negative/plus signs (`±0.5%`, `-0.12%`, `0.003%~0.005%`) correctly read as “百分之...至百分之...”.
+
 ## [1.2.16] - 2026-09-22
 
 ### Changed

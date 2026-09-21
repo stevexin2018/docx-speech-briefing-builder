@@ -148,6 +148,10 @@ def test_speech_cleaning():
     assert clean_speech_text("允许偏差为 -12.5%") == "允许偏差为 负 百分之12点五。", "负百分比未正确朗读！"
     assert clean_speech_text("区间为 10% ~ 20%") == "区间为 百分之10至百分之20。", "带空格百分比区间未正确朗读！"
     assert clean_speech_text("表头：合格率(%)") == "表头：合格率 百分号。", "表头独立百分号未朗读！"
+    assert clean_speech_text("碳含量为 0.35%") == "碳含量为 百分之零点三五。", "小数百分比未正确读作百分之零点三五！"
+    assert clean_speech_text("硫含量 ≤ 0.040%") == "硫含量 小于等于 百分之零点零四零。", "三位小数百分比未正确读作百分之零点零四零！"
+    assert clean_speech_text("CE ≤ 0.43%") == "CE 小于等于 百分之零点四三。", "碳当量百分比未正确朗读！"
+    assert clean_speech_text("控制在 0.003%~0.005%") == "控制在 百分之零点零零三至百分之零点零零五。", "小数百分比区间未正确朗读！"
 
     # 断言不包含刺耳的重复读音
     assert "至至" not in cleaned, "错误：TTS 文本中存在连续的'至'发音！"
