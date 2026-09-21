@@ -48,6 +48,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Compound & Engineering Units**: Supported heat input and velocity units like `J/in.`, `kJ/in` (**“焦耳 每 英寸”** / **“千焦 每 英寸”**), `in./min` (**“英寸 每 分钟”**), and area/volume powers (`in²` -> **“平方英寸”**, `in³` -> **“立方英寸”**).
   - **Flange & Component Model Codes**: Supported pipe fitting model codes containing inch symbols (e.g. `BL2"-150 RF` -> **“BL 2 英寸 150 RF”**, `WN2"-150` -> **“WN 2 英寸 150”**).
 
+## [1.2.14] - 2026-09-22
+
+### 🔧 Fixed & Improved
+- **1.5x Default Speed & Chinese Filename Standardization (1.5倍速基准与中文文件名标准化)**:
+  - **1.5x Speech Rate Default**: Standardized default TTS narration rate to **1.5x (+50%)** across documentation, CLI parameters, and integration wrappers for optimal listening comfort and clarity.
+  - **Full Chinese Path & Filename Native Support**: Verified and standardized UTF-8 Chinese naming convention (`报告_主题名称_时间戳.docx` / `.mp3`), providing intuitive file identification on mobile devices and desktop clients without character encoding issues.
+  - **Documentation & Metadata Sync**: Synchronized `SKILL.md`, `README.md`, and version descriptors.
+
 ## [1.2.13] - 2026-09-14
 
 ### 🔧 Fixed & Improved
