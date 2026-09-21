@@ -1,3 +1,11 @@
+## [1.2.16] - 2026-09-22
+
+### Changed
+- **Default Speech Rate Adjusted to 1.5x (`+50%`)**:
+  - Changed CLI default speech rate from `+200%` (3x) to `+50%` (1.5x) for optimal cognitive retention and focused listening flow.
+  - Updated all documentation, skill configurations, and examples across `SKILL.md`, `README.md`, and `clean_speech_text.py`.
+  - Maintained full backward compatibility for custom `--rate` overrides.
+
 # Changelog
 
 All notable changes to the `docx-speech-briefing-builder` project will be documented in this file.

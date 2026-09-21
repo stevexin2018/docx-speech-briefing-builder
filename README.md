@@ -1,6 +1,6 @@
 # docx-speech-briefing-builder
 
-> 🚀 **Universal AI Agent Skill & Python Tool**: Automated Markdown to elegant Word (`.docx`) reports with LaTeX/Unicode math, structured tables, header/footer branding, and 3x high-speed natural speech audio (`.mp3`).
+> 🚀 **Universal AI Agent Skill & Python Tool**: Automated Markdown to elegant Word (`.docx`) reports with LaTeX/Unicode math, structured tables, header/footer branding, and 1.5x optimal-speed natural speech audio (`.mp3`).
 
 ---
 
@@ -12,8 +12,8 @@
   - Robust **ASCII art & line-divider filtering** (eliminates markdown table borders and noisy separator rows).
   - Page margin, header/footer, and hierarchy header styling.
 
-- 🎙️ **3x Speech Audio (.mp3) Generator**:
-  - Powered by high-speed neural TTS (`zh-CN-XiaoxiaoNeural` at `+200%` rate).
+- 🎙️ **1.5x Speech Audio (.mp3) Generator**:
+  - Powered by high-speed neural TTS (`zh-CN-XiaoxiaoNeural` at `+50%` rate).
   - Engineering-grade text preprocessing: cleans formulas, converts decimal points (e.g. `0.45` -> `零点四五`), handles ranges/temperatures/units.
   - **Zero noise guarantee**: thoroughly eliminates annoying repetitive syllables from hyphens or punctuation.
 
@@ -48,12 +48,12 @@ python render_docx.py \
     --output "output_report.docx"
 ```
 
-### 2. Generate 3x Speech Narration (.mp3)
+### 2. Generate 1.5x Speech Narration (.mp3)
 ```bash
 python clean_speech_text.py \
     --input "sample_report.md" \
     --output "output_voice.mp3" \
-    --rate "+200%"
+    --rate "+50%"
 ```
 
 ### 3. Run Self-Evolution Regression Tests

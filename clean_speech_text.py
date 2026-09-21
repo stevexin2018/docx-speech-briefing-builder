@@ -461,11 +461,11 @@ def clean_speech_text(text: str) -> str:
 
 if __name__ == "__main__":
     import argparse
-    parser = argparse.ArgumentParser(description="Clean speech text and generate 3x audio.")
-    parser.add_argument("--version", action="version", version="docx-speech-briefing-builder v1.2.15")
+    parser = argparse.ArgumentParser(description="Clean speech text and generate 1.5x audio.")
+    parser.add_argument("--version", action="version", version="docx-speech-briefing-builder v1.2.16")
     parser.add_argument("--input", help="Input markdown file")
     parser.add_argument("--output", help="Output mp3 file")
-    parser.add_argument("--rate", default="+200%", help="Speech rate")
+    parser.add_argument("--rate", default="+50%", help="Speech rate")
     parser.add_argument("--proxy", default=None, help="Proxy URL (e.g. http://127.0.0.1:7897)")
     args = parser.parse_args()
 
