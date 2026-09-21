@@ -1,3 +1,11 @@
+## [1.2.18] - 2026-09-22
+
+### 🔧 Fixed & Improved
+- **1.5x Default Speed & Native Chinese Filename Support (1.5倍速发音基准与中文文件名支持)**:
+  - **1.5x Narration Rate**: Officially standardized the default TTS narration rate to **1.5x (+50%)** across documentation, skill specifications, and CLI wrappers for optimal listening comprehension.
+  - **Chinese Filename & Path Native Support**: Validated full UTF-8 native Chinese naming convention (`报告_中文主题_时间戳.docx` / `.mp3`), providing intuitive mobile/desktop document browsing without character encoding issues.
+  - **Metadata & SKILL.md Sync**: Synchronized `SKILL.md`, `version.py`, and `CHANGELOG.md` to version **v1.2.18**.
+
 ## [1.2.17] - 2026-09-22
 
 ### 🔧 Fixed

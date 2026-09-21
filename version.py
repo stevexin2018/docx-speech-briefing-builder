@@ -3,6 +3,6 @@ Package metadata for docx-speech-briefing-builder.
 Follows Semantic Versioning (SemVer: MAJOR.MINOR.PATCH).
 """
 
-__version__ = "1.2.14"
+__version__ = "1.2.18"
 __author__ = "Steve Xin"
 __description__ = "Universal Word (.docx) & 1.5x Noise-Free Speech Briefing Builder for AI Agents"
