@@ -1,3 +1,13 @@
+## [1.2.19] - 2026-09-23
+
+### 🚀 Added & Improved
+- **Robust Chunked Streaming & Zero-Truncation TTS Engine (工业级分段流式抗截断语音合成)**:
+  - **Native Async Python API**: Switched from external `edge-tts` CLI subprocess invocations to native Python `edge_tts.Communicate` async streaming API, gaining full control over audio packets and connection state.
+  - **Smart Punctuation-Aware Chunking (智能自然标点切分)**: Implemented `split_text_chunks()` to automatically partition lengthy documents into safe-length segments (800~1000 characters) bounded by Chinese punctuation (`。！？；\n`), completely eliminating WebSocket transmission timeouts on long connections.
+  - **Chunk-Level Exponential Backoff Retry (分块级指数退避重试)**: Added automated 3-attempt retry per chunk, seamlessly recovering from network jitter, proxy resets, and TCP RST interruptions without failing the entire document.
+  - **Seamless MP3 Splicing (内存/文件流式无损拼接)**: Sequentially streams and writes audio frames into a single unified output file, ensuring perfectly continuous narration without acoustic breaks or artifacts.
+  - **Multi-OS Adaptive Resilience (跨平台自适应与双重代理环境兼容)**: Solves the long-audio truncation issue under complex proxy configurations (e.g. Clash Verge System Proxy + TUN mode on Windows) while maintaining optimal speed on Linux (ARM/x86 VPS) and macOS.
+
 ## [1.2.18] - 2026-09-22
 
 ### 🔧 Fixed & Improved

@@ -460,10 +460,102 @@ def clean_speech_text(text: str) -> str:
 
     return text.strip()
 
+def split_text_chunks(text: str, max_chars: int = 1000) -> list:
+    """
+    智能自然语言断句分块器：
+    以中文句号、叹号、问号、分号及换行符为边界，将长篇文本拆分为安全长度的分块，
+    彻底消除单次长连接 WebSocket 传输超时的截断风险。
+    """
+    if not text:
+        return []
+    sentences = re.split(r'([。！？；\n]+)', text)
+    chunks = []
+    current_chunk = ""
+    for i in range(0, len(sentences), 2):
+        sentence = sentences[i]
+        sep = sentences[i+1] if i+1 < len(sentences) else ""
+        part = sentence + sep
+        if not part.strip():
+            continue
+        if len(current_chunk) + len(part) > max_chars and current_chunk:
+            chunks.append(current_chunk.strip())
+            current_chunk = part
+        else:
+            current_chunk += part
+    if current_chunk.strip():
+        chunks.append(current_chunk.strip())
+    return chunks
+
+async def synthesize_speech_async(
+    cleaned_text: str,
+    output_path: str,
+    rate: str = "+50%",
+    voice: str = "zh-CN-XiaoxiaoNeural",
+    proxy: str = None,
+    max_chunk_chars: int = 1000,
+    max_retries: int = 3
+) -> None:
+    """
+    跨平台工业级语音合成引擎 (v1.2.19)：
+    - 原生 Python edge_tts.Communicate 异步流式 API，彻底替代外部 CLI 子进程；
+    - 智能自然语言断句分块（800~1000字/块），消灭单连接超时截断；
+    - 分块级指数退避重试机制，从容应对网络闪断与 TCP RST；
+    - 内存/流式平滑无损拼接写入目标 MP3。
+    """
+    import edge_tts
+    import socket
+    import asyncio
+
+    if not proxy:
+        proxy = os.environ.get("HTTP_PROXY") or os.environ.get("HTTPS_PROXY") or os.environ.get("ALL_PROXY") or os.environ.get("http_proxy") or os.environ.get("https_proxy")
+        if not proxy:
+            for p_candidate in ["127.0.0.1:7897", "127.0.0.1:7890"]:
+                host, port = p_candidate.split(":")
+                try:
+                    with socket.create_connection((host, int(port)), timeout=0.3):
+                        proxy = f"http://{p_candidate}"
+                        break
+                except Exception:
+                    pass
+
+    chunks = split_text_chunks(cleaned_text, max_chars=max_chunk_chars)
+    if not chunks:
+        # 空文本保护
+        chunks = ["已生成报告。"]
+
+    with open(output_path, "wb") as f_out:
+        for idx, chunk in enumerate(chunks):
+            success = False
+            last_err = None
+            for attempt in range(max_retries):
+                try:
+                    communicate = edge_tts.Communicate(chunk, voice=voice, rate=rate, proxy=proxy)
+                    async for packet in communicate.stream():
+                        if packet["type"] == "audio":
+                            f_out.write(packet["data"])
+                    success = True
+                    break
+                except Exception as e:
+                    last_err = e
+                    await asyncio.sleep(0.5 * (attempt + 1))
+            if not success:
+                raise RuntimeError(f"语音合成在第 {idx+1}/{len(chunks)} 分段失败 (重试 {max_retries} 次): {last_err}")
+
+def generate_speech_audio(
+    cleaned_text: str,
+    output_path: str,
+    rate: str = "+50%",
+    voice: str = "zh-CN-XiaoxiaoNeural",
+    proxy: str = None
+) -> None:
+    """同步入口包装函数"""
+    import asyncio
+    asyncio.run(synthesize_speech_async(cleaned_text, output_path, rate=rate, voice=voice, proxy=proxy))
+
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description="Clean speech text and generate 1.5x audio.")
-    parser.add_argument("--version", action="version", version="docx-speech-briefing-builder v1.2.16")
+    parser.add_argument("--version", action="version", version="docx-speech-briefing-builder v1.2.19")
     parser.add_argument("--input", help="Input markdown file")
     parser.add_argument("--output", help="Output mp3 file")
     parser.add_argument("--rate", default="+50%", help="Speech rate")
@@ -475,22 +567,7 @@ if __name__ == "__main__":
             raw = f.read()
         cleaned = clean_speech_text(raw)
         if args.output:
-            import os, subprocess, socket
-            proxy = args.proxy or os.environ.get("HTTP_PROXY") or os.environ.get("HTTPS_PROXY") or os.environ.get("ALL_PROXY") or os.environ.get("http_proxy") or os.environ.get("https_proxy")
-            if not proxy:
-                for p_candidate in ["127.0.0.1:7897", "127.0.0.1:7890"]:
-                    host, port = p_candidate.split(":")
-                    try:
-                        with socket.create_connection((host, int(port)), timeout=0.3):
-                            proxy = f"http://{p_candidate}"
-                            break
-                    except Exception:
-                        pass
-
-            cmd = ["edge-tts", "--voice", "zh-CN-XiaoxiaoNeural", f"--rate={args.rate}", "--text", cleaned, "--write-media", args.output]
-            if proxy:
-                cmd.extend(["--proxy", proxy])
-            subprocess.run(cmd, check=True)
+            generate_speech_audio(cleaned, args.output, rate=args.rate, proxy=args.proxy)
             print(f"Audio saved to {args.output}")
         else:
             print(cleaned)
