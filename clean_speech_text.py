@@ -527,19 +527,26 @@ async def synthesize_speech_async(
         for idx, chunk in enumerate(chunks):
             success = False
             last_err = None
+            chunk_data = bytearray()
             for attempt in range(max_retries):
                 try:
+                    chunk_data.clear()
                     communicate = edge_tts.Communicate(chunk, voice=voice, rate=rate, proxy=proxy)
                     async for packet in communicate.stream():
                         if packet["type"] == "audio":
-                            f_out.write(packet["data"])
-                    success = True
-                    break
+                            chunk_data.extend(packet["data"])
+                    if len(chunk_data) > 0:
+                        success = True
+                        break
+                    else:
+                        raise RuntimeError("未接收到音频数据包")
                 except Exception as e:
                     last_err = e
-                    await asyncio.sleep(0.5 * (attempt + 1))
+                    await asyncio.sleep(0.8 * (attempt + 1))
             if not success:
                 raise RuntimeError(f"语音合成在第 {idx+1}/{len(chunks)} 分段失败 (重试 {max_retries} 次): {last_err}")
+            f_out.write(chunk_data)
+            f_out.flush()
 
 def generate_speech_audio(
     cleaned_text: str,
