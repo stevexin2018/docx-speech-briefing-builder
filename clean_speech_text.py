@@ -496,7 +496,7 @@ async def synthesize_speech_async(
     max_retries: int = 3
 ) -> None:
     """
-    跨平台工业级语音合成引擎 (v1.2.19)：
+    跨平台工业级语音合成引擎 (v1.2.21)：
     - 原生 Python edge_tts.Communicate 异步流式 API，彻底替代外部 CLI 子进程；
     - 智能自然语言断句分块（800~1000字/块），消灭单连接超时截断；
     - 分块级指数退避重试机制，从容应对网络闪断与 TCP RST；
@@ -523,7 +523,8 @@ async def synthesize_speech_async(
         # 空文本保护
         chunks = ["已生成报告。"]
 
-    with open(output_path, "wb") as f_out:
+    temp_output_path = output_path + ".tmp"
+    with open(temp_output_path, "wb") as f_out:
         for idx, chunk in enumerate(chunks):
             success = False
             last_err = None
@@ -548,6 +549,11 @@ async def synthesize_speech_async(
             f_out.write(chunk_data)
             f_out.flush()
 
+    # 所有分块全部生成并写入完成后，才原子重命名为最终目标文件
+    if os.path.exists(output_path):
+        os.remove(output_path)
+    os.replace(temp_output_path, output_path)
+
 def generate_speech_audio(
     cleaned_text: str,
     output_path: str,
@@ -562,7 +568,7 @@ def generate_speech_audio(
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description="Clean speech text and generate 1.5x audio.")
-    parser.add_argument("--version", action="version", version="docx-speech-briefing-builder v1.2.19")
+    parser.add_argument("--version", action="version", version="docx-speech-briefing-builder v1.2.21")
     parser.add_argument("--input", help="Input markdown file")
     parser.add_argument("--output", help="Output mp3 file")
     parser.add_argument("--rate", default="+50%", help="Speech rate")
