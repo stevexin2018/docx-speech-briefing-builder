@@ -77,6 +77,16 @@ def test_speech_cleaning():
     assert "第 1 点 2 节" in cleaned, "错误：二级大纲编号 1.2 未正确转为'第 1 点 2 节'！"
 
     # 验证工程运算符与比较符号
+    # 验证账号ID、电话号码与长数字串逐位口语化消歧 (v1.2.19)
+    assert "七七一零一二六三八六三三三五四八" in clean_speech_text("ca-pub-7710126386333548"), "发布商ID ca-pub-xxxx 未逐位口语化！"
+    assert "七七一零一二六三八六三三三五四八" in clean_speech_text("pub-7710126386333548"), "发布商ID pub-xxxx 未逐位口语化！"
+    assert "一三八 零零一三 八零零零" in clean_speech_text("电话号码：13800138000"), "11位手机号码未按 3-4-4 逐位朗读！"
+    assert "零一零 一二三四五六七八" in clean_speech_text("服务热线：010-12345678"), "固定电话未正确逐位朗读且连字符被误读为'至'！"
+    assert "四零零 八八八 一二三四" in clean_speech_text("全国热线：400-888-1234"), "400服务电话被误读为'至'或大数字！"
+    assert "八零零 八二零 五五五五" in clean_speech_text("客服热线：800-820-5555"), "800服务电话被误读！"
+    assert "二零二六零九二七一一零六一四" in clean_speech_text("订单编号20260927110614"), "带前缀长流水号未按逐位朗读！"
+    assert "七千七百一十万亿" not in clean_speech_text("ca-pub-7710126386333548"), "发布商ID仍被误读为几千兆几万亿计量大数！"
+
     # 验证标准代号与修改单斜杠消歧 (v1.2.13)
     assert clean_speech_text("ISO 5775-1:2014 / Amd 1:2020") == "ISO 5775至1 比 2014 Amd 1 比 2020。", "标准修改单斜杠被误读为除以！"
     assert clean_speech_text("ETRTO/ISO") == "ETRTO ISO。", "并列标准组织斜杠被误读为除以或词内RT被误伤！"

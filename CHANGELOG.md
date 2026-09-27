@@ -8,6 +8,18 @@
   - **Seamless MP3 Splicing (内存/文件流式无损拼接)**: Sequentially streams and writes audio frames into a single unified output file, ensuring perfectly continuous narration without acoustic breaks or artifacts.
   - **Multi-OS Adaptive Resilience (跨平台自适应与双重代理环境兼容)**: Solves the long-audio truncation issue under complex proxy configurations (e.g. Clash Verge System Proxy + TUN mode on Windows) while maintaining optimal speed on Linux (ARM/x86 VPS) and macOS.
 
+## [1.2.19] - 2026-09-27
+
+### 🔧 Fixed & Improved
+- **Identifier, Account ID & Phone Number Digit-by-Digit Speech Synthesis (账号ID、电话号码与长数字编码逐位口语化消歧)**:
+  - **Publisher & Account IDs**: Resolved issue where long identifier codes (e.g. `ca-pub-7710126386333548`, `pub-7710126386333548`, `ID: 9876543210`) were erroneously read out as astronomical cardinal quantities (such as "七千七百一十万亿..."); now cleanly converted to natural digit-by-digit spoken words (`ca pub 七七一零一二六三八六三三三五四八`).
+  - **Telephone & Mobile Numbers**:
+    - **Mobile numbers**: 11-digit mobile numbers (e.g. `13800138000`, `+86 13912345678`) are automatically formatted into standard Chinese 3-4-4 cadence (`一三八 零零一三 八零零零`).
+    - **Landline numbers**: Area codes and local numbers (e.g. `010-12345678`, `0755-88888888 转 123`) preserve natural pauses without being mistaken as numeric ranges ("至").
+    - **400 / 800 Hotlines**: Toll-free hotlines (e.g. `400-888-1234`, `800-820-5555`) are strictly pronounced digit-by-digit (`四零零 八八八 一二三四`).
+  - **Order & Tracking Codes**: Numbers preceded by tags like 订单、编号、流水号、工单 (e.g. `订单编号20260927110614`) are pronounced digit-by-digit.
+  - **Protection of True Quantities**: Preserved normal physical measurements, temperatures, thicknesses, and thousands-grouped cardinal numbers (e.g. `150°C ~ 350°C`, `10-20mm`, `1,234,567 元`).
+
 ## [1.2.18] - 2026-09-22
 
 ### 🔧 Fixed & Improved

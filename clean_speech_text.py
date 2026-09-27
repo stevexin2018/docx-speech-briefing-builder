@@ -227,6 +227,61 @@ def clean_speech_text(text: str) -> str:
     text = re.sub(r'([+\-]?\d+(?:\.\d+)?)\^(?=[ \t]*[CFcf]\b)', r'\1°', text)
     text = re.sub(r'([+\-]?\d+(?:\.\d+)?)\^(?=[ \t]*[\u4e00-\u9fa5（\(\)，。！？；：`\'"]|$)', r'\1°C', text)
 
+    # 3.3 账号ID、发布商代码、电话号码与长数字编码逐位口语化消歧（在除法与范围连字符转换前执行）
+    digit_speech_map = {
+        '0': '零', '1': '一', '2': '二', '3': '三', '4': '四',
+        '5': '五', '6': '六', '7': '七', '8': '八', '9': '九'
+    }
+    def _digits_to_words(d_str):
+        return ''.join(digit_speech_map.get(c, c) for c in d_str)
+
+    # 3.3.1 Google AdSense / 类似账号 ID (如 ca-pub-7710126386333548, pub-7710126386333548)
+    def _repl_pub_id(m):
+        prefix = m.group(1).replace('-', ' ').strip()
+        digits = _digits_to_words(m.group(2))
+        return f' {prefix} {digits} '
+    text = re.sub(r'\b(ca-pub|pub)-(\d{8,25})\b', _repl_pub_id, text, flags=re.IGNORECASE)
+
+    # 3.3.2 400 / 800 统一服务热线 (如 400-888-1234, 800-820-5555, 400 888 1234)
+    def _repl_400_800(m):
+        p1 = _digits_to_words(m.group(1))
+        p2 = _digits_to_words(m.group(2))
+        p3 = _digits_to_words(m.group(3))
+        return f' {p1} {p2} {p3} '
+    text = re.sub(r'\b(400|800)[\s\-]+(\d{3,4})[\s\-]+(\d{4})\b', _repl_400_800, text)
+
+    # 3.3.3 中国固定电话/座机号码 (如 010-12345678, 021-12345678, 0755-12345678 转 123)
+    def _repl_landline(m):
+        area = _digits_to_words(m.group(1))
+        num = _digits_to_words(m.group(2))
+        ext = f' 分机 {_digits_to_words(m.group(3))}' if m.group(3) else ''
+        return f' {area} {num}{ext} '
+    text = re.sub(r'(?<!\d)(0\d{2,3})[\s\-]+(\d{7,8})(?:[\s\-]+(?:转|分机|ext\.?)\s*(\d{1,6}))?(?!\d)', _repl_landline, text, flags=re.IGNORECASE)
+
+    # 3.3.4 手机号码 (支持 +86/86 前缀，如 13800138000, +86 13912345678, 138-0013-8000)
+    def _repl_mobile(m):
+        country = '加八六 ' if m.group(1) else ''
+        num_str = m.group(2).replace('-', '').replace(' ', '')
+        d_p1 = _digits_to_words(num_str[:3])
+        d_p2 = _digits_to_words(num_str[3:7])
+        d_p3 = _digits_to_words(num_str[7:])
+        return f' {country}{d_p1} {d_p2} {d_p3} '
+    text = re.sub(r'(?<!\d)(\+?86[\s\-]*)?(1[3-9]\d[\s\-]?[0-9]{4}[\s\-]?[0-9]{4})(?!\d)', _repl_mobile, text)
+
+    # 3.3.5 常见前缀引导的编号/工单/流水号/证件号 (如 编号：20260927110614, 订单号123456789, QQ: 12345678)
+    prefix_tags = r'(?:编号|单号|工单|订单|批号|账号|流水号|电话|热线|固话|手机|传真|税号|统一社会信用代码|代码|学号|证件号|身份证|卡号|QQ|qq|ID|id|No\.?|NO\.?)[\:：\s]*'
+    def _repl_tagged_code(m):
+        tag = m.group(1)
+        digits = _digits_to_words(m.group(2))
+        return f'{tag} {digits} '
+    text = re.sub(fr'({prefix_tags})(\d{{5,30}})(?!\d)', _repl_tagged_code, text)
+
+    # 3.3.6 独立无单位的超长数字编码 (8位及以上纯连续数字，如 7710126386333548, 20260927110614)
+    # 排除带千分位点(如 1,234,567 元)或带小数点的常规数值
+    def _repl_long_digits(m):
+        return f' {_digits_to_words(m.group(0))} '
+    text = re.sub(r'(?<![A-Za-z0-9_.,，])\d{8,30}(?![0-9A-Za-z_.,，])', _repl_long_digits, text)
+
     # 4. 【关键】条款、标识符与单位中的斜杠消歧（在除法识别前执行）
     # 4.1 复合条款名并列，支持小数级条款号
     #     (如 QW-404.12/QW-404.33, UG-28/UG-29, VIII-1/VIII-2)
