@@ -77,6 +77,15 @@ def test_speech_cleaning():
     assert "第 1 点 2 节" in cleaned, "错误：二级大纲编号 1.2 未正确转为'第 1 点 2 节'！"
 
     # 验证工程运算符与比较符号
+    # 验证 HTML/XML 标签剥离、箭头口语化与单位防误伤 (v1.2.23)
+    assert clean_speech_text("<r><p>这是一段XML测试内容</p></r>") == "这是一段XML测试内容。", "HTML/XML标签被误读为小于大于号！"
+    assert "小于 r 大于" not in clean_speech_text("<r><p>测试</p></r>"), "标签未被剥离！"
+    assert clean_speech_text("A -> B -> C") == "A 到 B 到 C。", "右箭头 -> 被误读为大于号！"
+    assert clean_speech_text("输入 x --> 输出 y") == "输入 x 到 输出 y。", "长箭头 --> 被误读！"
+    assert clean_speech_text("条件 a ==> 结果 b") == "条件 a 到 结果 b。", "双线箭头 ==> 被误读！"
+    assert clean_speech_text("Kimi K3 模型表现优秀") == "Kimi K3 模型表现优秀。", "K3 模型名称被误转换为立方符号！"
+    assert clean_speech_text("S2 级钢材与 s2 材质") == "S2 级钢材与 s2 材质。", "S2/s2 型号被误转换为平方符号！"
+
     # 验证账号ID、电话号码与长数字串逐位口语化消歧 (v1.2.19)
     assert "七七一零一二六三八六三三三五四八" in clean_speech_text("ca-pub-7710126386333548"), "发布商ID ca-pub-xxxx 未逐位口语化！"
     assert "七七一零一二六三八六三三三五四八" in clean_speech_text("pub-7710126386333548"), "发布商ID pub-xxxx 未逐位口语化！"

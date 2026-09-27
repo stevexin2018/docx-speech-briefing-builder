@@ -113,8 +113,22 @@ def clean_speech_text(text: str) -> str:
     if not text:
         return ""
 
-    # 0. 预先处理 HTML 标签、LaTeX 范围波浪号与细空格
+    # 0. 预先处理 HTML/XML 标签、尖括号 URL、流程箭头、HTML 实体、LaTeX 范围波浪号与细空格
+    # 0.1 尖括号 URL 链接 (如 <https://example.com> 或 <http://...>) 消除
+    text = re.sub(r'<https?://[^>]+>', ' ', text)
+
+    # 0.2 解码 HTML 实体 (&lt; -> <, &gt; -> > 等) 并剥离所有 HTML/XML 标签 (如 <r><p>...</p></r>, <div>, <span>)
+    import html as _html_mod
+    text = _html_mod.unescape(text)
     text = re.sub(r'<br\s*/?>', ' ， ', text, flags=re.IGNORECASE)
+    # 彻底剥离所有 HTML/XML 标签（标签名以字母开头，杜绝 <r><p> 被误读为“小于 r 大于”）
+    text = re.sub(r'</?[A-Za-z][A-Za-z0-9_:-]*(?:\s+[^>]*)?/?>', ' ', text)
+
+    # 0.3 流程箭头与转换符号口语化（必须在多余符号清除 Phase 3 之前执行，防止 --> 或 ==> 被拆解）
+    # 各种形式的右箭头: ->, -->, --->, ==>, =>, →, ➜, ➔ 读作“到”
+    text = re.sub(r'(?:[-=]{1,3}>|[→➜➔])', ' 到 ', text)
+    # 各种形式的左箭头: <-, <--, <---, <==, ← 读作“来自”（严格负向断言排除 <= 小于等于）
+    text = re.sub(r'(?:<[-=]{2,}|(?<!<)<-(?!>)|←)', ' 来自 ', text)
     text = re.sub(r'\\sim\b(?:\\,)?', ' 至 ', text)
     text = text.replace(r'\,', ' ').replace(r'\;', ' ').replace(r'\:', ' ').replace(r'\!', ' ').replace(r'\ ', ' ')
     text = re.sub(r'\\(?:quad|qquad|enspace|thinspace)\b', ' ', text)
