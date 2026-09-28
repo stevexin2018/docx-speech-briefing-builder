@@ -70,6 +70,10 @@ def clean_inline_text(text):
         token_idx[0] += 1
         return key
 
+    # 0.0 消除 HTML/XML 换行与标签残留 (<br>, <br/> 转为单元格换行符 \n, 剥离其余 HTML 标签)
+    text = re.sub(r'<br\s*/?>', '\n', text, flags=re.IGNORECASE)
+    text = re.sub(r'</?[A-Za-z][A-Za-z0-9_:-]*(?:\s+[^>]*)?/?>', '', text)
+
     # 0.1 保护行内代码块 `...`
     text = re.sub(r'`[^`\r\n]+`', lambda m: _save_token(m.group(0)), text)
 
@@ -438,7 +442,7 @@ def create_docx_document(topic_title, chapter_id, markdown_content, output_path,
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description="Render Markdown to Professional Word Document.")
-    parser.add_argument("--version", action="version", version="docx-speech-briefing-builder v1.2.8")
+    parser.add_argument("--version", action="version", version="docx-speech-briefing-builder v1.2.24")
     parser.add_argument("--title", default="工程技术报告", help="Title")
     parser.add_argument("--topic-id", default="BPVC", help="Topic ID")
     parser.add_argument("--input", required=True, help="Input markdown path")

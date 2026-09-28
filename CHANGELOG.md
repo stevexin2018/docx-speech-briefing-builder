@@ -1,4 +1,12 @@
-## [1.2.19] - 2026-09-23
+## [1.2.24] - 2026-09-28
+
+### 🔧 Fixed & Improved
+- **Word (.docx) HTML `<br>` & Tag Elimination in Table Cells**:
+  - Resolved historical defect where `<br>` / `<br/>` was only cleaned in TTS speech text but leaked literally into Word document table cells.
+  - Implemented automatic conversion of `<br>`, `<br/>` directly into standard Word cell line breaks (`\n` / `<w:br/>`) and stripped rogue HTML tags during `clean_inline_text()`.
+  - Ensures clean multiline layout in Markdown tables across all rendered Word reports without raw tag residuals.
+
+## [1.2.23] - 2026-09-27
 
 ### 🚀 Added & Improved
 - **Robust Chunked Streaming & Zero-Truncation TTS Engine (工业级分段流式抗截断语音合成)**:
