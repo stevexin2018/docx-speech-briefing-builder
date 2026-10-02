@@ -2,24 +2,24 @@
 name: docx-speech-briefing-builder
 version: 1.3.0
 updated: 2026-09-29
-description: 将 Markdown 深度工程报告自动转换为排版 Word 文档 (.docx) 与 1.5倍速高品质语音讲解音频 (.mp3)。核心引擎已完全独立解耦至独立仓库 /root/docx-speech-briefing-builder (https://github.com/stevexin2018/docx-speech-briefing-builder)。
+description: 将 Markdown 深度工程报告自动转换为排版 Word 文档 (.docx) 与正常语速高品质语音讲解音频 (.mp3)。核心引擎已完全独立解耦至独立仓库 /root/docx-speech-briefing-builder (https://github.com/stevexin2018/docx-speech-briefing-builder)。
 ---
 
-# Word & 1.5x Speech Briefing Builder (v1.3.0)
+# Word & Normal Speed Speech Briefing Builder (v1.3.1)
 
 ## 📌 概述
 本 Skill 作为 OpenClaw 技能协议入口，底层直接连接 **`docx-speech-briefing-builder` 独立组件库**（独立 Git 仓库：`/root/docx-speech-briefing-builder`）。
 
 一键将 Markdown 深度技术分析报告转换为（全链路原生支持中文文件名与 UTF-8 路径）：
 1. **排版 Word 文档 (`.docx`)**：包含页眉页脚、标题层级、Unicode/OMML 公式转换、数据表格交替底色、引用高亮框、**自动剥离 ASCII 文本边框与纯符号分隔线**、**自动规范化温度度数排版（如 5^ / +5^ / +5^\circ\text{C} -> 5°C / +5°C）**；
-2. **1.5 倍速晓晓女声讲解音频 (`.mp3`)**：完整保留数学与工程运算符，口语化大纲编号与单位，生成自然流畅的 1.5 倍速音频；
-3. **一体化并发执行引擎 (`build_briefing.py`) [v1.3.0 新增]**：通过多线程并发池同时并行执行 Word 渲染与 Edge-TTS 音频流合成，彻底消灭串行等待时间，构建提速 40% 以上，并减少 50% 的 Agent 进程调度开销。
+2. **正常语速晓晓女声讲解音频 (`.mp3`)**：完整保留数学与工程运算符，口语化大纲编号与单位，默认以标准自然正常语速（+0%）生成高品质音频；
+3. **一体化并发执行引擎 (`build_briefing.py`)**：通过多线程并发池同时并行执行 Word 渲染与 Edge-TTS 音频流合成，彻底消灭串行等待时间，构建提速 40% 以上，并减少 50% 的 Agent 进程调度开销。
 
 ---
 
 ## 🛠️ 独立仓库架构与核心文件
 独立仓库位置：`/root/docx-speech-briefing-builder`
-- `version.py`：版本元数据定义 (`__version__ = "1.3.0"`)
+- `version.py`：版本元数据定义 (`__version__ = "1.3.1"`)
 - `CHANGELOG.md`：版本演进与发布历史
 - `build_briefing.py`：**一体化并行构建引擎**（Word 渲染 + TTS 流式音频全并发）
 - `render_docx.py`：Word 渲染排版引擎
@@ -31,14 +31,14 @@ description: 将 Markdown 深度工程报告自动转换为排版 Word 文档 (.
 ## 🚀 快速使用 (CLI)
 
 ```bash
-# 【推荐】方式 1：一步直达一体化并发构建（Word + 1.5倍速音频完全并发）
+# 【推荐】方式 1：一步直达一体化并发构建（Word + 正常语速音频完全并发）
 python3 build_briefing.py \
     --input "/path/to/report.md" \
     --docx "/path/to/output.docx" \
     --mp3 "/path/to/output.mp3" \
     --title "工程技术深度解析" \
     --topic-id "Technology" \
-    --rate "+50%"
+    --rate "+0%"
 
 # 方式 2：单独调用 Word 排版
 python3 render_docx.py \
@@ -51,5 +51,5 @@ python3 render_docx.py \
 python3 clean_speech_text.py \
     --input "/path/to/report.md" \
     --output "/path/to/voice.mp3" \
-    --rate "+50%"
+    --rate "+0%"
 ```

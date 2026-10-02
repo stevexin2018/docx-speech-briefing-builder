@@ -558,7 +558,7 @@ def split_text_chunks(text: str, max_chars: int = 1000) -> list:
 async def synthesize_speech_async(
     cleaned_text: str,
     output_path: str,
-    rate: str = "+50%",
+    rate: str = "+0%",
     voice: str = "zh-CN-XiaoxiaoNeural",
     proxy: str = None,
     max_chunk_chars: int = 1000,
@@ -626,7 +626,7 @@ async def synthesize_speech_async(
 def generate_speech_audio(
     cleaned_text: str,
     output_path: str,
-    rate: str = "+50%",
+    rate: str = "+0%",
     voice: str = "zh-CN-XiaoxiaoNeural",
     proxy: str = None
 ) -> None:
@@ -640,7 +640,7 @@ if __name__ == "__main__":
     parser.add_argument("--version", action="version", version="docx-speech-briefing-builder v1.2.21")
     parser.add_argument("--input", help="Input markdown file")
     parser.add_argument("--output", help="Output mp3 file")
-    parser.add_argument("--rate", default="+50%", help="Speech rate")
+    parser.add_argument("--rate", default="+0%", help="Speech rate (default +0%% normal speed)")
     parser.add_argument("--proxy", default=None, help="Proxy URL (e.g. http://127.0.0.1:7897)")
     args = parser.parse_args()
 

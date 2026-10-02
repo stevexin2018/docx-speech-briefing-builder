@@ -45,7 +45,7 @@ def build_briefing_concurrent(
     output_mp3: str,
     title: str = None,
     topic_id: str = "Technology",
-    rate: str = "+50%",
+    rate: str = "+0%",
     proxy: str = None
 ):
     if not title:
@@ -80,7 +80,7 @@ if __name__ == "__main__":
     parser.add_argument("--mp3", required=True, help="Output MP3 path")
     parser.add_argument("--title", default=None, help="Document title")
     parser.add_argument("--topic-id", default="Technology", help="Topic ID for Word styling")
-    parser.add_argument("--rate", default="+50%", help="TTS speech rate, default +50%%")
+    parser.add_argument("--rate", default="+0%", help="TTS speech rate, default +0% (normal speed)")
     parser.add_argument("--proxy", default=None, help="Proxy URL for edge-tts")
 
     args = parser.parse_args()
