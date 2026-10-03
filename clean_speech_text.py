@@ -555,6 +555,31 @@ def split_text_chunks(text: str, max_chars: int = 1000) -> list:
         chunks.append(current_chunk.strip())
     return chunks
 
+async def _synthesize_one_chunk(
+    chunk: str, voice: str, rate: str, proxy: str, max_retries: int = 3
+) -> bytes:
+    """合成单个分块，含指数退避重试。返回音频字节。"""
+    import edge_tts
+    import asyncio
+    chunk_data = bytearray()
+    last_err = None
+    for attempt in range(max_retries):
+        try:
+            chunk_data.clear()
+            communicate = edge_tts.Communicate(chunk, voice=voice, rate=rate, proxy=proxy)
+            async for packet in communicate.stream():
+                if packet["type"] == "audio":
+                    chunk_data.extend(packet["data"])
+            if len(chunk_data) > 0:
+                return bytes(chunk_data)
+            else:
+                raise RuntimeError("未接收到音频数据包")
+        except Exception as e:
+            last_err = e
+            await asyncio.sleep(0.8 * (attempt + 1))
+    raise RuntimeError(f"分块合成失败 (重试 {max_retries} 次): {last_err}")
+
+
 async def synthesize_speech_async(
     cleaned_text: str,
     output_path: str,
@@ -562,13 +587,16 @@ async def synthesize_speech_async(
     voice: str = "zh-CN-XiaoxiaoNeural",
     proxy: str = None,
     max_chunk_chars: int = 1000,
-    max_retries: int = 3
+    max_retries: int = 3,
+    max_concurrency: int = 2
 ) -> None:
     """
-    跨平台工业级语音合成引擎 (v1.2.21)：
-    - 原生 Python edge_tts.Communicate 异步流式 API，彻底替代外部 CLI 子进程；
+    跨平台工业级语音合成引擎 (v1.4.0)：
+    - 原生 Python edge_tts.Communicate 异步流式 API；
     - 智能自然语言断句分块（800~1000字/块），消灭单连接超时截断；
     - 分块级指数退避重试机制，从容应对网络闪断与 TCP RST；
+    - **受控并发合成**：默认双并发请求（max_concurrency=2），显著缩短多段文本合成耗时；
+    - **自动降级回退**：并发失败时自动退回串行逐段合成，保证交付可靠性；
     - 内存/流式平滑无损拼接写入目标 MP3。
     """
     import edge_tts
@@ -589,36 +617,40 @@ async def synthesize_speech_async(
 
     chunks = split_text_chunks(cleaned_text, max_chars=max_chunk_chars)
     if not chunks:
-        # 空文本保护
         chunks = ["已生成报告。"]
 
+    # --- 尝试受控并发合成 ---
+    concurrent_ok = False
+    results = [None] * len(chunks)
+    if max_concurrency >= 2 and len(chunks) >= 2:
+        try:
+            sem = asyncio.Semaphore(max_concurrency)
+            async def _bounded(idx, chk):
+                async with sem:
+                    return idx, await _synthesize_one_chunk(chk, voice, rate, proxy, max_retries)
+            tasks = [asyncio.create_task(_bounded(i, c)) for i, c in enumerate(chunks)]
+            done = await asyncio.gather(*tasks, return_exceptions=False)
+            for idx, data in done:
+                results[idx] = data
+            concurrent_ok = True
+        except Exception:
+            # 并发失败，下面走串行降级
+            results = [None] * len(chunks)
+
+    # --- 串行降级（或单段文本直接走此路径）---
+    if not concurrent_ok:
+        for idx, chunk in enumerate(chunks):
+            try:
+                results[idx] = await _synthesize_one_chunk(chunk, voice, rate, proxy, max_retries)
+            except Exception as e:
+                raise RuntimeError(f"语音合成在第 {idx+1}/{len(chunks)} 分段失败: {e}")
+
+    # --- 按序拼接写入 ---
     temp_output_path = output_path + ".tmp"
     with open(temp_output_path, "wb") as f_out:
-        for idx, chunk in enumerate(chunks):
-            success = False
-            last_err = None
-            chunk_data = bytearray()
-            for attempt in range(max_retries):
-                try:
-                    chunk_data.clear()
-                    communicate = edge_tts.Communicate(chunk, voice=voice, rate=rate, proxy=proxy)
-                    async for packet in communicate.stream():
-                        if packet["type"] == "audio":
-                            chunk_data.extend(packet["data"])
-                    if len(chunk_data) > 0:
-                        success = True
-                        break
-                    else:
-                        raise RuntimeError("未接收到音频数据包")
-                except Exception as e:
-                    last_err = e
-                    await asyncio.sleep(0.8 * (attempt + 1))
-            if not success:
-                raise RuntimeError(f"语音合成在第 {idx+1}/{len(chunks)} 分段失败 (重试 {max_retries} 次): {last_err}")
-            f_out.write(chunk_data)
-            f_out.flush()
+        for data in results:
+            f_out.write(data)
 
-    # 所有分块全部生成并写入完成后，才原子重命名为最终目标文件
     if os.path.exists(output_path):
         os.remove(output_path)
     os.replace(temp_output_path, output_path)
@@ -636,8 +668,8 @@ def generate_speech_audio(
 
 if __name__ == "__main__":
     import argparse
-    parser = argparse.ArgumentParser(description="Clean speech text and generate 1.5x audio.")
-    parser.add_argument("--version", action="version", version="docx-speech-briefing-builder v1.2.21")
+    parser = argparse.ArgumentParser(description="Clean speech text and generate TTS audio.")
+    parser.add_argument("--version", action="version", version="docx-speech-briefing-builder v1.4.0")
     parser.add_argument("--input", help="Input markdown file")
     parser.add_argument("--output", help="Output mp3 file")
     parser.add_argument("--rate", default="+0%", help="Speech rate (default +0%% normal speed)")

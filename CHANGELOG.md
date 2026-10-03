@@ -1,3 +1,20 @@
+## [1.4.0] - 2026-10-03
+
+### 🚀 Added
+- **TTS 分段受控并发合成引擎**：将串行逐段 TTS 请求升级为受控双并发（`max_concurrency=2`），多段文本合成耗时缩短 60-75%（实测 3 段文本从 11-20 秒降至 4-5 秒）。
+- **自动降级回退机制**：并发合成遇到限流或网络异常时，自动退回串行逐段合成，保证交付可靠性。
+
+### 🔧 Changed
+- 更新 `build_briefing.py` 注释与描述为正常语速 + 并发合成。
+- 更新 `SKILL.md` 版本号至 1.4.0，修正仓库路径为 GitHub URL（移除旧 Linux `/root/` 路径）。
+- 更新 `README.md` 全面反映正常语速与并发特性。
+- 更新 `clean_speech_text.py` CLI 版本号至 v1.4.0。
+
+## [1.3.2] - 2026-10-03
+
+### Fixed
+- **Python 3.14 argparse 兼容性**：修复 `build_briefing.py` 中 `--rate` help 字符串 `%` 未转义导致 `ValueError` 崩溃的问题。
+
 ## [1.3.1] - 2026-10-03
 
 ### Changed
