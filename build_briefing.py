@@ -2,7 +2,7 @@
 """
 build_briefing.py
 =================
-一体化并行构建引擎 (v1.4.0):
+一体化并行构建引擎 (v1.4.1):
 同时并发执行：
 1. render_docx: 将 Markdown 深度报告渲染为高品质排版 Word 文档 (.docx)
 2. clean_speech_text + synthesize_speech_async: 清洗文本并调用 Edge-TTS 生成正常语速音频 (.mp3)

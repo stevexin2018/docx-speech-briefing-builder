@@ -507,7 +507,7 @@ def clean_speech_text(text: str) -> str:
     text = text.replace('Appendix', '附录')
     text = text.replace('kJ', ' 千焦 ')
     text = text.replace('MPa', ' 兆帕 ')
-    text = text.replace('mm', ' 毫米 ')
+    text = re.sub(r'(?<![A-Za-z_])mm(?![A-Za-z0-9_])', ' 毫米 ', text)
     text = re.sub(r'\bRT([1-4])\b', r' R T \1 ', text)
     text = re.sub(r'\bRT\b', ' R T 无损检测 ', text)
 
@@ -591,7 +591,7 @@ async def synthesize_speech_async(
     max_concurrency: int = 2
 ) -> None:
     """
-    跨平台工业级语音合成引擎 (v1.4.0)：
+    跨平台工业级语音合成引擎 (v1.4.1)：
     - 原生 Python edge_tts.Communicate 异步流式 API；
     - 智能自然语言断句分块（800~1000字/块），消灭单连接超时截断；
     - 分块级指数退避重试机制，从容应对网络闪断与 TCP RST；
@@ -669,7 +669,7 @@ def generate_speech_audio(
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description="Clean speech text and generate TTS audio.")
-    parser.add_argument("--version", action="version", version="docx-speech-briefing-builder v1.4.0")
+    parser.add_argument("--version", action="version", version="docx-speech-briefing-builder v1.4.1")
     parser.add_argument("--input", help="Input markdown file")
     parser.add_argument("--output", help="Output mp3 file")
     parser.add_argument("--rate", default="+0%", help="Speech rate (default +0%% normal speed)")
