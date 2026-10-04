@@ -13,6 +13,7 @@ import os
 import sys
 import docx
 from engineering_text import normalize_quantities
+from omml_adapter import latex_to_omml
 from docx.shared import Inches, Pt, RGBColor
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.enum.table import WD_TABLE_ALIGNMENT
@@ -313,11 +314,20 @@ def create_docx_document(topic_title, chapter_id, markdown_content, output_path,
             p.alignment = WD_ALIGN_PARAGRAPH.CENTER
             p.paragraph_format.space_before = Pt(8)
             p.paragraph_format.space_after = Pt(8)
-            run = p.add_run(clean_inline_text(formula_text))
-            run.font.name = "Cambria Math"
-            run.font.size = Pt(12)
-            run.font.color.rgb = RGBColor(30, 30, 30)
-            run.font.italic = True
+            # 优先尝试 OMML 原生矢量公式嵌入，失败自动 Fallback 回退
+            omml_success = False
+            try:
+                omml_xml = latex_to_omml(formula_text, display=False)
+                p._element.append(parse_xml(omml_xml))
+                omml_success = True
+            except Exception:
+                pass
+            if not omml_success:
+                run = p.add_run(clean_inline_text(formula_text))
+                run.font.name = "Cambria Math"
+                run.font.size = Pt(12)
+                run.font.color.rgb = RGBColor(30, 30, 30)
+                run.font.italic = True
             doc.add_paragraph().paragraph_format.space_after = Pt(4)
             i += 1
             continue
@@ -421,19 +431,56 @@ def create_docx_document(topic_title, chapter_id, markdown_content, output_path,
         p.paragraph_format.space_after = Pt(4)
         p.paragraph_format.line_spacing = 1.25
 
-        cleaned_line = clean_inline_text(line_s)
-        parts = cleaned_line.split('**')
-        for idx, part in enumerate(parts):
-            if not part:
-                continue
-            run = p.add_run(part)
-            run.font.name = "微软雅黑"
-            run.font.size = Pt(10.5)
-            if idx % 2 == 1:
-                run.font.bold = True
-                run.font.color.rgb = RGBColor(180, 40, 40)
-            else:
-                run.font.color.rgb = RGBColor(40, 40, 40)
+        # 行内公式识别与 OMML 双轨注入
+        # 若段落中包含 $...$，切分并逐段渲染：公式部分尝试插入 OMML，普通部分走加粗与字体样式
+        raw_segments = re.split(r'(?<!\\)\$([^$]+?)(?<!\\)\$', line_s)
+        if len(raw_segments) > 1:
+            for s_idx, seg in enumerate(raw_segments):
+                if not seg:
+                    continue
+                if s_idx % 2 == 1:
+                    # 奇数位为行内 LaTeX 公式
+                    omml_done = False
+                    try:
+                        omml_xml = latex_to_omml(seg, display=False)
+                        p._element.append(parse_xml(omml_xml))
+                        omml_done = True
+                    except Exception:
+                        pass
+                    if not omml_done:
+                        run = p.add_run(clean_inline_text(seg))
+                        run.font.name = "Cambria Math"
+                        run.font.size = Pt(10.5)
+                        run.font.italic = True
+                else:
+                    # 偶数位为普通文本，保留加粗逻辑
+                    cleaned_seg = clean_inline_text(seg)
+                    parts = cleaned_seg.split('**')
+                    for b_idx, part in enumerate(parts):
+                        if not part:
+                            continue
+                        run = p.add_run(part)
+                        run.font.name = "微软雅黑"
+                        run.font.size = Pt(10.5)
+                        if b_idx % 2 == 1:
+                            run.font.bold = True
+                            run.font.color.rgb = RGBColor(180, 40, 40)
+                        else:
+                            run.font.color.rgb = RGBColor(40, 40, 40)
+        else:
+            cleaned_line = clean_inline_text(line_s)
+            parts = cleaned_line.split('**')
+            for idx, part in enumerate(parts):
+                if not part:
+                    continue
+                run = p.add_run(part)
+                run.font.name = "微软雅黑"
+                run.font.size = Pt(10.5)
+                if idx % 2 == 1:
+                    run.font.bold = True
+                    run.font.color.rgb = RGBColor(180, 40, 40)
+                else:
+                    run.font.color.rgb = RGBColor(40, 40, 40)
         i += 1
 
     doc.save(output_path)

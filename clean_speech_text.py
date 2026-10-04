@@ -457,6 +457,15 @@ def clean_speech_text(text: str) -> str:
 
     # 10. 比较与运算符号口语化（精准保留 大于、小于、大于等于、小于等于、等于、不等于、除以、乘以）
     # 10.1 比较符
+        # === 工程力学标准应力分量与组合判据朗读映射 (ASME BPVC 压力容器发音优化) ===
+    text = re.sub(r'(?<![A-Za-z0-9_])P_L\s*\+\s*P_b\s*\+\s*Q(?![A-Za-z0-9_])', '局部薄膜加弯曲加二次应力 PL 加上 Pb 加上 Q', text)
+    text = re.sub(r'(?<![A-Za-z0-9_])P_L\s*\+\s*P_b(?![A-Za-z0-9_])', '局部薄膜加弯曲应力 PL 加上 Pb', text)
+    text = re.sub(r'(?<![A-Za-z0-9_])P_m(?![A-Za-z0-9_])', '一次薄膜应力 Pm', text)
+    text = re.sub(r'(?<![A-Za-z0-9_])P_L(?![A-Za-z0-9_])', '局部薄膜应力 PL', text)
+    text = re.sub(r'(?<![A-Za-z0-9_])P_b(?![A-Za-z0-9_])', '弯曲应力 Pb', text)
+    text = re.sub(r'(?<![A-Za-z0-9_])S_m(?![A-Za-z0-9_])', '设计应力强度 Sm', text)
+    text = re.sub(r'\\text\{\s*mm\s*\}|(?<=\d)\s*mm', ' 毫米', text)
+
     text = re.sub(r'\\ge\b|\\geq\b|>=|≥', ' 大于等于 ', text)
     text = re.sub(r'\\approx\b|≈|≃|≅', ' 约等于 ', text)
     text = re.sub(r'\\le\b|\\leq\b|<=|≤', ' 小于等于 ', text)
