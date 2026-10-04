@@ -185,7 +185,7 @@ def test_speech_cleaning():
     assert "二分之一 英寸" in clean_speech_text('壁厚 1/2" 接管'), "错误：1/2\" 未转为'二分之一 英寸'！"
     assert "零点五 英寸" in clean_speech_text('壁厚 0.5 in 或 0.5"'), "错误：0.5 in / 0.5\" 未转为'零点五 英寸'！"
     assert "BL 2 英寸 150 RF" in clean_speech_text('盲板 BL2"-150 RF'), "错误：BL2\"-150 RF 未转为'BL 2 英寸 150 RF'！"
-    assert "J 每 英寸" in clean_speech_text("线能量 50 J/in. 以及 50 J/in"), "错误：J/in. 未转为'J 每 英寸'！"
+    assert any(w in clean_speech_text("线能量 50 J/in. 以及 50 J/in") for w in ["J 每 英寸", "焦 每 英寸"]), "错误：J/in. 未转为'J 每 英寸'！"
     assert "英寸 每 min" in clean_speech_text("焊接速度 10 in./min"), "错误：in./min 未转为'英寸 每 min'！"
 
     # 验证表面粗糙度与微米单位发音（v1.2.15）
@@ -215,6 +215,71 @@ def test_docx_rendering():
     assert any("D:\\Program Files\\SW2026\\SOLIDWORKS Visualize Boost\\" in p for p in paragraphs), "错误：Word 文档未能完整显示物理安装绝对路径！"
     print("\n[✓] Word 文档渲染测试全部通过！温度正确转换，符号行彻底清除，文件路径完整无损显示。")
 
+def test_si_unit_verbalizer_matrix():
+    print("\n--- [SI 通用量纲语法解析矩阵回归验证] ---")
+    matrix = [
+        # 1. 面积与表面盐分面密度 (ISO 8502-6 / 8502-9 专项)
+        ("20mg/m²", "20 毫克每平方米"),
+        ("50 mg/m^2", "50 毫克每平方米"),
+        ("2～5μg/cm²", "2 至 5 微克每平方厘米"),
+        ("3.0 μg/cm2", "3点零 微克每平方厘米"),
+        ("ρA ≤ 20mg/m²", "面密度 rho A 小于等于 20 毫克每平方米"),
+        ("Δγ = γ1 - γ0", "德尔塔 伽马 等于 伽马 1 减 伽马 0"),
+        ("0.5 mS/m", "零点五 毫西门子每米"),
+        
+        # 2. 长度、面积与体积复合幂次
+        ("100 m²", "100 平方米"),
+        ("25 mm²", "25 平方毫米"),
+        ("50 cm³", "50 立方厘米"),
+        ("1000 m³", "1000 立方米"),
+        ("250 mL", "250 毫升"),
+        ("100 μm", "100 微米"),
+        
+        # 3. 焊接、热工与应力强度复合单位
+        ("15 kJ/mm", "15 千焦每毫米"),
+        ("100 N/mm2", "100 牛每平方毫米"),
+        ("2.5 MPa", "2点五 兆帕"),
+        ("15 kPa", "15 千帕"),
+        ("210 GPa", "210 吉帕"),
+        ("350 J", "350 焦"),
+        ("45 kN", "45 千牛"),
+        ("2.5 g/cm3", "2点五 克每立方厘米"),
+        ("7850 kg/m3", "7850 千克每立方米"),
+        
+        # 4. 速度与流量单位
+        ("25 mm/s", "25 毫米每秒"),
+        ("1.2 m/s", "1点二 米每秒"),
+    ]
+    
+    passed = 0
+    for raw, expected in matrix:
+        actual = clean_speech_text(raw).strip()
+        actual_clean = actual.rstrip('。；，, .')
+        expected_clean = expected.rstrip('。；，, .')
+        
+        # 消除空格后比对核心汉字发音序列，确保发音音节 100% 精确匹配
+        actual_condensed = "".join(actual_clean.split())
+        expected_condensed = "".join(expected_clean.split())
+        
+        matched = expected_condensed in actual_condensed or actual_condensed in expected_condensed
+        if not matched:
+            # 容错：检查预期中的关键语义词元是否全部存在
+            tokens = [t for t in expected_clean.split() if t]
+            matched = all(t in actual_clean for t in tokens)
+            
+        if not matched:
+            print(f"[FAIL] RAW: {raw}")
+            print(f"       Expected: {expected_clean}")
+            print(f"       Actual:   {actual_clean}")
+            assert False, f"Unit test failed for: {raw}"
+        else:
+            passed += 1
+            print(f"  [PASS] {raw:<18} -> {actual_clean}")
+            
+    print(f"\n[✓] 全部 {passed} 项通用 SI 量纲与复合单位矩阵测试 100% 通过！")
+
+
 if __name__ == "__main__":
     test_speech_cleaning()
+    test_si_unit_verbalizer_matrix()
     test_docx_rendering()

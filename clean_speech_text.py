@@ -1,3 +1,4 @@
+from unit_verbalizer import verbalize_text_units
 #!/usr/bin/env python3
 """
 clean_speech_text.py
@@ -168,7 +169,7 @@ def clean_speech_text(text: str) -> str:
         # 大纲与章节编号口语化转换（杜绝 1. 被吞或 1.2 读成 2）
         # 1.1 多级大纲编号 (如 1.1, 1.2, 2.1.3)
         # 避免将以小数开头的工程参数/单位行（如 0.8 μm, 0.45 mm）误判为章节标题编号
-        l = re.sub(r'^(?!0\.\d+)(\d+(?:\.\d+)+)[ \t]+(?![~～\-至])(?=(?:[^\d\s]|[\u4e00-\u9fa5]))(?!\b(?:mm|cm|m|km|um|μm|µm|in|MPa|GPa|kPa|Pa|kJ|J|kg|g|mg|s|min|h|°C|°F|℃|N|kN)\b)', convert_section_number, l)
+        l = re.sub(r'^(?!0\.\d+)(\d+(?:\.\d+)+)[ \t]+(?![~～\-至])(?=(?:[^\d\s]|[\u4e00-\u9fa5]))(?!(?:mm|cm|dm|m|km|um|μm|µm|in|ft|MPa|GPa|kPa|Pa|kJ|MJ|GJ|J|kN|MN|N|mS|μS|µS|uS|S|mL|ml|L|s|min|h|°C|°F|℃|mg|μg|µg|ug|g|kg)(?![A-Za-z0-9]))', convert_section_number, l)
         # 1.2 顶级大纲/有序列表 (如 1., 2., 1、, 1))
         l = re.sub(r'^(\d+)(?:[、\)]|\.(?!\d))[ \t]*', r'第 \1 点 ', l)
 
@@ -221,6 +222,8 @@ def clean_speech_text(text: str) -> str:
     text = re.sub(r'`([^`]+)`', r'\1', text)
 
     text = normalize_quantities(text)
+    # 调用通用国际单位制（SI）量纲解析器，标准化平方、立方及复合除法单位
+    text = verbalize_text_units(text)
     grouped_numbers = set()
 
     def ungroup_number(match):
@@ -417,6 +420,11 @@ def clean_speech_text(text: str) -> str:
     text = re.sub(r"(?<!百分之)(\d+(?:点[\w]+)?)\s*-\s*(?<!百分之)(\d+(?:点[\w]+)?)", r"\1至\2", text)
     text = re.sub(r"([+\-−±]?)\s*(" + num_pat + r")\s*%", convert_percent_single, text)
 
+    
+    # 8.9 表面盐分与流体物理参数（rho / 密度 / 面密度）发音增强
+    text = re.sub(r'\\(?:rho|up_rho)[_\{]*[Aa]\}?|ρ[ _]*[Aa]', ' 面密度 rho A ', text)
+    text = re.sub(r'\\(?:rho|up_rho)|ρ', ' rho ', text)
+
     # 9. 希腊字母口语化
     greek_tts_map = {
         r'\alpha': ' 阿尔法 ', r'\beta': ' 贝塔 ', r'\gamma': ' 伽马 ', r'\Gamma': ' 伽马 ',
@@ -482,7 +490,10 @@ def clean_speech_text(text: str) -> str:
     # 除法/比值: 凡是在英文、数字、下标花括号之间的 / 均读作 除以 (如 D/t, P/S, a/b)
     text = re.sub(r'([A-Za-z0-9_\}]+)\s*/\s*([A-Za-z0-9_\{]+)', r'\1 除以 \2', text)
     # 加减符号: 变量/数字间转为“加上”，前置正负号转为“正/负”
-    text = re.sub(r'(?<=[A-Za-z0-9])\s*\+\s*(?=[A-Za-z0-9])', ' 加上 ', text)
+    text = re.sub(r'(?<=[A-Za-z0-9\u4e00-\u9fa5α-ωΑ-Ω])\s*\+\s*(?=[A-Za-z0-9\u4e00-\u9fa5α-ωΑ-Ω])', ' 加上 ', text)
+    # 显式带空格的数学公式减法 (如 γ1 - γ0, A - B, x - 1)，严格避免误伤连字符牌号 (SA-240)
+    text = re.sub(r'(?<![寸级号型])(?<=[0-9A-Za-zα-ωΑ-Ω\u4e00-\u9fa5\)])\s+[-−]\s+(?=[0-9A-Za-zα-ωΑ-Ω\u4e00-\u9fa5\(])', ' 减 ', text)
+    text = re.sub(r'([γ]\d*)\s*[-−]\s*([γ]\d*)', r'\1 减 \2', text)
     text = re.sub(r'(?<![A-Za-z0-9])\+\s*(?=\d)', '正 ', text)
 
     # 11. LaTeX 结构与函数
