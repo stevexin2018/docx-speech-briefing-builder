@@ -1,3 +1,12 @@
+## [1.5.2] - 2026-10-08
+
+### 🚀 Added & Improved
+- **TTS 多音色高可用自动容灾降级 (Voice Auto-Fallback Chain)**：
+  - 建立预设四梯队音色候选链：`zh-CN-XiaoxiaoNeural`（标准温和女声）➔ `zh-CN-YunxiNeural`（阳光男声）➔ `zh-CN-XiaoyiNeural`（多情感女声）➔ `zh-CN-YunjianNeural`（沉稳解说男声）；
+  - 当微软 Edge-TTS 某一音色端点遇到网络波动、服务器异常或包丢失时，单分块在指数退避重试基础上自动平滑轮转至备用音色重试，根治音色单点故障导致整份报告中断。
+- **一体化构建引擎参数补齐**：`build_briefing.py` 与 `clean_speech_text.py` 均新增 `--voice` 参数并向下透明透传容灾链；
+- **版本与 Skill 元数据全量同步**：更新版本至 `v1.5.2`，回归测试 100% 通过。
+
 ## [1.4.1] - 2026-10-03
 
 ### 🐛 Fixed

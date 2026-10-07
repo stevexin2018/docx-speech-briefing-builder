@@ -31,12 +31,12 @@ def build_docx_worker(input_md: str, output_docx: str, title: str, topic_id: str
     cost = time.time() - t0
     return cost
 
-def build_audio_worker(input_md: str, output_mp3: str, rate: str, proxy: str) -> float:
+def build_audio_worker(input_md: str, output_mp3: str, rate: str, voice: str, proxy: str) -> float:
     t0 = time.time()
     with open(input_md, "r", encoding="utf-8") as f:
         raw_text = f.read()
     cleaned = clean_speech_text(raw_text)
-    generate_speech_audio(cleaned, output_mp3, rate=rate, proxy=proxy)
+    generate_speech_audio(cleaned, output_mp3, rate=rate, voice=voice, proxy=proxy)
     cost = time.time() - t0
     return cost
 
@@ -47,6 +47,7 @@ def build_briefing_concurrent(
     title: str = None,
     topic_id: str = "Technology",
     rate: str = "+0%",
+    voice: str = "zh-CN-XiaoxiaoNeural",
     proxy: str = None
 ):
     if not title:
@@ -58,7 +59,7 @@ def build_briefing_concurrent(
 
     with ThreadPoolExecutor(max_workers=2) as executor:
         f_docx = executor.submit(build_docx_worker, input_md, output_docx, title, topic_id)
-        f_audio = executor.submit(build_audio_worker, input_md, output_mp3, rate, proxy)
+        f_audio = executor.submit(build_audio_worker, input_md, output_mp3, rate, voice, proxy)
 
         # 等待两者完成并捕获异常
         cost_docx = f_docx.result()
@@ -82,6 +83,7 @@ if __name__ == "__main__":
     parser.add_argument("--title", default=None, help="Document title")
     parser.add_argument("--topic-id", default="Technology", help="Topic ID for Word styling")
     parser.add_argument("--rate", default="+0%", help="TTS speech rate, default +0%% (normal speed)")
+    parser.add_argument("--voice", default="zh-CN-XiaoxiaoNeural", help="TTS voice model (default: zh-CN-XiaoxiaoNeural, auto-fallbacks on error)")
     parser.add_argument("--proxy", default=None, help="Proxy URL for edge-tts")
 
     args = parser.parse_args()
@@ -93,5 +95,6 @@ if __name__ == "__main__":
         title=args.title,
         topic_id=args.topic_id,
         rate=args.rate,
+        voice=args.voice,
         proxy=args.proxy
     )

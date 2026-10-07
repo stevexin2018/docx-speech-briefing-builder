@@ -1,11 +1,11 @@
 ---
 name: docx-speech-briefing-builder
-version: 1.4.1
-updated: 2026-10-03
+version: 1.5.2
+updated: 2026-10-08
 description: 将 Markdown 深度工程报告自动转换为排版 Word 文档 (.docx) 与正常语速高品质语音讲解音频 (.mp3)。核心引擎已完全独立解耦至独立仓库 (https://github.com/stevexin2018/docx-speech-briefing-builder)。
 ---
 
-# Word & Normal Speed Speech Briefing Builder (v1.4.1)
+# Word & Normal Speed Speech Briefing Builder (v1.5.2)
 
 ## 📌 概述
 本 Skill 作为 OpenClaw 技能协议入口，底层直接连接 **`docx-speech-briefing-builder` 独立组件库**（独立 Git 仓库：`https://github.com/stevexin2018/docx-speech-briefing-builder`）。
@@ -20,7 +20,7 @@ description: 将 Markdown 深度工程报告自动转换为排版 Word 文档 (.
 
 ## 🛠️ 独立仓库架构与核心文件
 独立仓库：`https://github.com/stevexin2018/docx-speech-briefing-builder`
-- `version.py`：版本元数据定义 (`__version__ = "1.4.1"`)
+- `version.py`：版本元数据定义 (`__version__ = "1.5.2"`)
 - `CHANGELOG.md`：版本演进与发布历史
 - `build_briefing.py`：**一体化并行构建引擎**（Word 渲染 + TTS 流式音频全并发）
 - `render_docx.py`：Word 渲染排版引擎

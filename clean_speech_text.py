@@ -575,29 +575,47 @@ def split_text_chunks(text: str, max_chars: int = 1000) -> list:
         chunks.append(current_chunk.strip())
     return chunks
 
+# 工业级高可用容灾备选音色梯队 (Primary -> Fallback)
+DEFAULT_FALLBACK_VOICES = [
+    "zh-CN-XiaoxiaoNeural",  # 首选：晓晓（标准自然温和女声）
+    "zh-CN-YunxiNeural",     # 备选 1：云希（自然阳光男声）
+    "zh-CN-XiaoyiNeural",    # 备选 2：晓伊（多情感女声）
+    "zh-CN-YunjianNeural"    # 备选 3：云健（稳重解说男声）
+]
+
 async def _synthesize_one_chunk(
-    chunk: str, voice: str, rate: str, proxy: str, max_retries: int = 3
+    chunk: str, voice: str, rate: str, proxy: str, max_retries: int = 3,
+    fallback_voices: list = None
 ) -> bytes:
-    """合成单个分块，含指数退避重试。返回音频字节。"""
+    """合成单个分块，含指数退避重试与多音色自动容灾降级。返回音频字节。"""
     import edge_tts
     import asyncio
+
+    # 构造容灾音色候选链 (指定的 voice 首选，其余备用音色补齐)
+    if fallback_voices is None:
+        fallback_voices = [v for v in DEFAULT_FALLBACK_VOICES if v != voice]
+    voice_chain = [voice] + [v for v in fallback_voices if v != voice]
+
     chunk_data = bytearray()
     last_err = None
-    for attempt in range(max_retries):
-        try:
-            chunk_data.clear()
-            communicate = edge_tts.Communicate(chunk, voice=voice, rate=rate, proxy=proxy)
-            async for packet in communicate.stream():
-                if packet["type"] == "audio":
-                    chunk_data.extend(packet["data"])
-            if len(chunk_data) > 0:
-                return bytes(chunk_data)
-            else:
-                raise RuntimeError("未接收到音频数据包")
-        except Exception as e:
-            last_err = e
-            await asyncio.sleep(0.8 * (attempt + 1))
-    raise RuntimeError(f"分块合成失败 (重试 {max_retries} 次): {last_err}")
+
+    for cur_voice in voice_chain:
+        for attempt in range(max_retries):
+            try:
+                chunk_data.clear()
+                communicate = edge_tts.Communicate(chunk, voice=cur_voice, rate=rate, proxy=proxy)
+                async for packet in communicate.stream():
+                    if packet["type"] == "audio":
+                        chunk_data.extend(packet["data"])
+                if len(chunk_data) > 0:
+                    return bytes(chunk_data)
+                else:
+                    raise RuntimeError("未接收到音频数据包")
+            except Exception as e:
+                last_err = e
+                await asyncio.sleep(0.8 * (attempt + 1))
+
+    raise RuntimeError(f"分块合成失败 (全音色容灾链重试耗尽): {last_err}")
 
 
 async def synthesize_speech_async(
@@ -605,6 +623,7 @@ async def synthesize_speech_async(
     output_path: str,
     rate: str = "+0%",
     voice: str = "zh-CN-XiaoxiaoNeural",
+    fallback_voices: list = None,
     proxy: str = None,
     max_chunk_chars: int = 1000,
     max_retries: int = 3,
@@ -647,7 +666,7 @@ async def synthesize_speech_async(
             sem = asyncio.Semaphore(max_concurrency)
             async def _bounded(idx, chk):
                 async with sem:
-                    return idx, await _synthesize_one_chunk(chk, voice, rate, proxy, max_retries)
+                    return idx, await _synthesize_one_chunk(chk, voice, rate, proxy, max_retries, fallback_voices)
             tasks = [asyncio.create_task(_bounded(i, c)) for i, c in enumerate(chunks)]
             done = await asyncio.gather(*tasks, return_exceptions=False)
             for idx, data in done:
@@ -661,7 +680,7 @@ async def synthesize_speech_async(
     if not concurrent_ok:
         for idx, chunk in enumerate(chunks):
             try:
-                results[idx] = await _synthesize_one_chunk(chunk, voice, rate, proxy, max_retries)
+                results[idx] = await _synthesize_one_chunk(chunk, voice, rate, proxy, max_retries, fallback_voices)
             except Exception as e:
                 raise RuntimeError(f"语音合成在第 {idx+1}/{len(chunks)} 分段失败: {e}")
 
@@ -680,19 +699,21 @@ def generate_speech_audio(
     output_path: str,
     rate: str = "+0%",
     voice: str = "zh-CN-XiaoxiaoNeural",
+    fallback_voices: list = None,
     proxy: str = None
 ) -> None:
-    """同步入口包装函数"""
+    """同步入口包装函数（支持多音色容灾）"""
     import asyncio
-    asyncio.run(synthesize_speech_async(cleaned_text, output_path, rate=rate, voice=voice, proxy=proxy))
+    asyncio.run(synthesize_speech_async(cleaned_text, output_path, rate=rate, voice=voice, fallback_voices=fallback_voices, proxy=proxy))
 
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description="Clean speech text and generate TTS audio.")
-    parser.add_argument("--version", action="version", version="docx-speech-briefing-builder v1.4.1")
+    parser.add_argument("--version", action="version", version="docx-speech-briefing-builder v1.5.2")
     parser.add_argument("--input", help="Input markdown file")
     parser.add_argument("--output", help="Output mp3 file")
     parser.add_argument("--rate", default="+0%", help="Speech rate (default +0%% normal speed)")
+    parser.add_argument("--voice", default="zh-CN-XiaoxiaoNeural", help="TTS voice model (default: zh-CN-XiaoxiaoNeural)")
     parser.add_argument("--proxy", default=None, help="Proxy URL (e.g. http://127.0.0.1:7897)")
     args = parser.parse_args()
 
@@ -701,7 +722,7 @@ if __name__ == "__main__":
             raw = f.read()
         cleaned = clean_speech_text(raw)
         if args.output:
-            generate_speech_audio(cleaned, args.output, rate=args.rate, proxy=args.proxy)
+            generate_speech_audio(cleaned, args.output, rate=args.rate, voice=args.voice, proxy=args.proxy)
             print(f"Audio saved to {args.output}")
         else:
             print(cleaned)
