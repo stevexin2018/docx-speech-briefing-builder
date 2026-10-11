@@ -65,7 +65,7 @@ def spoken_signed_number(sign: str, number: str) -> str:
     return number
 
 def temperature_unit_name(unit: str) -> str:
-    return '华氏度' if unit == '°F' else '摄氏度'
+    return '华氏度' if unit in ('°F', '℉') else '摄氏度'
 
 def convert_temperature_range(m):
     start = spoken_signed_number(m.group(1), m.group(2))
@@ -134,6 +134,10 @@ def clean_speech_text(text: str) -> str:
     text = text.replace(r'\,', ' ').replace(r'\;', ' ').replace(r'\:', ' ').replace(r'\!', ' ').replace(r'\ ', ' ')
     text = re.sub(r'\\(?:quad|qquad|enspace|thinspace)\b', ' ', text)
     text = text.replace('％', '%').replace(r'\%', '%')
+    # 0.3.1 华氏度与摄氏度全角/特殊符号预先规范化（防止 ℉ 在后续标点清洗阶段被误删漏读，或括号内负温符号丢失）
+    text = text.replace('℉', '°F')
+    text = re.sub(r'\bdeg\s*[Ff]\b', '°F', text)
+    text = re.sub(r'\bdeg\s*[Cc]\b', '°C', text)
 
     # 0.1 微米单位预转换（必须在希腊字母 μ 替换前执行，杜绝 μm 被拆读为“缪 m”）
     # 涵盖: \mu\text{m}, \mu\mathrm{m}, \mum, \upmu\text{m}, \upmum, μm, µm, um
@@ -299,7 +303,17 @@ def clean_speech_text(text: str) -> str:
         return f' {_digits_to_words(m.group(0))} '
     text = re.sub(r'(?<![A-Za-z0-9_.,，])\d{8,30}(?![0-9A-Za-z_.,，])', _repl_long_digits, text)
 
-    # 4. 【关键】条款、标识符与单位中的斜杠消歧（在除法识别前执行）
+    # 4. 【关键】条款、标准号、标识符、公英制对照与单位中的斜杠消歧（在分数与除法识别前执行）
+    # 4.0 两个标准号/规范号之间的“/”读作“或”（杜绝被后续分数或除法规则误读为“分之”或“除以”）
+    # (a) 同系列标准带前缀并列：如 ASTM A153 / A153M, ASTM A123 / A123M, ASME B16.5 / B16.47, SA-350 / SA-350M
+    std_org = r'(?:ASTM|ASME|ISO|EN|DIN|BS|JIS|AWS|API|NACE|MSS|AWWA|GB(?:\s*/\s*[TZtz])?|JB(?:\s*/\s*[Tt])?|HG(?:\s*/\s*[Tt])?|SH(?:\s*/\s*[Tt])?|NB(?:\s*/\s*[Tt])?|SY(?:\s*/\s*[Tt])?|TSG)'
+    std_num_token = r'[A-Za-z]{0,4}\s*-?\s*\d+(?:[.-]\d+)*(?:[A-Za-z]{1,3})?(?:\s*:\s*\d{4})?'
+    # 两个完整标准号并列：如 ISO 9001 / ISO 14001, GB/T 1234 / GB/T 5678, EN 10204 / DIN 50049, GB 150 / JB 4732
+    text = re.sub(fr'\b({std_org}\s+{std_num_token})\s*/\s*({std_org}\s+{std_num_token})(?![A-Za-z0-9])', r'\1 或 \2', text)
+    # 共享前置组织名的并列标准号：如 ASTM A153 / A153M, ASME B16.5 / B16.47, ASTM A90 / A90M
+    text = re.sub(fr'\b({std_org}\s+[A-Za-z]{{0,4}}\d+(?:\.\d+)?[A-Za-z]?)\s*/\s*([A-Za-z]{{0,4}}\d+(?:\.\d+)?[A-Za-z]?)(?![A-Za-z0-9.])', r'\1 或 \2', text)
+    # 独立带M公英制对照的标准编号：如 A153 / A153M, A123 / A123M, A90 / A90M, SA-350 / SA-350M, SA-240 / SA-240M, E112 / E112M
+    text = re.sub(r'\b([A-Za-z]{1,3}-?\d{1,5})\s*/\s*(\1M)\b', r'\1 或 \2', text, flags=re.IGNORECASE)
     # 4.1 复合条款名并列，支持小数级条款号
     #     (如 QW-404.12/QW-404.33, UG-28/UG-29, VIII-1/VIII-2)
     clause_id = r'[A-Za-z]+-[A-Za-z0-9]+(?:\.[A-Za-z0-9]+)*'
@@ -337,6 +351,11 @@ def clean_speech_text(text: str) -> str:
     text = re.sub(r'(?<![A-Za-z0-9])in(?:\.|\b)\s*/\s*(min|s|h)\b', r' 英寸 每 \1 ', text)
     text = re.sub(r'(?<![A-Za-z0-9])in\s*\^?\s*2\b|\bsq\.?\s*in(?:\.|\b)', ' 平方英寸 ', text, flags=re.IGNORECASE)
     text = re.sub(r'(?<![A-Za-z0-9])in\s*\^?\s*3\b|\bcu\.?\s*in(?:\.|\b)', ' 立方英寸 ', text, flags=re.IGNORECASE)
+    text = re.sub(r'\boz\s*/\s*ft(?:²|\^2|2)\b', ' 盎司 每 平方英尺 ', text, flags=re.IGNORECASE)
+    text = re.sub(r'\bmils\b', ' 密耳 ', text, flags=re.IGNORECASE)
+    # 4.5.4 括号或表头中公英制单位对照的斜杠读作“或”（如 微米 / 密耳, 克 每 平方米 / 盎司 每 平方英尺, MPa / ksi, mm / in.）
+    unit_cn_en = r'(?:微米|毫米|厘米|米|千米|英寸|英尺|密耳|兆帕|千帕|吉帕|帕|焦|千焦|牛|千牛|克|千克|毫克|盎司|磅|平方米|平方厘米|平方毫米|平方英寸|平方英尺|立方米|立方厘米|升|毫升|摄氏度|华氏度|MPa|GPa|kPa|Pa|psi|ksi|bar|mm|cm|m|in\.?|ft\.?|mils?|oz|lb|g|kg)(?:\s*每\s*(?:平方米|平方厘米|平方毫米|平方英寸|平方英尺|立方米|立方厘米|米|毫米|秒|分|小时|in\.?|ft\.?|m|s|min|h))?'
+    text = re.sub(fr'({unit_cn_en})\s*/\s*({unit_cn_en})', r'\1 或 \2', text, flags=re.IGNORECASE)
 
     # 4.9 管件/法兰型号中的英寸规格消歧 (如 BL2"-150, WN2"-150, SO1/2"-300)
     text = re.sub(r'\b([A-Za-z]+)\s*(\d+(?:[ \t\-]+\d+\s*/\s*\d+|\s*/\s*\d+)?)\s*(?:\"|″|”)\s*-\s*(\d+)', r'\1 \2 英寸 - \3', text)
@@ -375,6 +394,17 @@ def clean_speech_text(text: str) -> str:
     text = re.sub(r'(?<![A-Za-z0-9.])(\d+(?:\.\d+)?)\s*(?:in(?:\.|\b)|inch(?:es)?\b)', r'\1 英寸 ', text)
 
 
+    # 6.6 公制与英制并列数值对、牌号/壁厚等级并列中的“/”读作“或”
+    # (a) 只要斜杠左右任一侧包含小数（如 79 / 3.1, 86 / 3.4, 610 / 2.00, 381 / 1.25, 1.5 / 38），必为公英制对照或并列数值，绝非工程分式！
+    text = re.sub(r'(?<![A-Za-z0-9.])(\d+(?:\.\d+)?)\s*/\s*(\d+\.\d+)(?![A-Za-z0-9.])', r'\1 或 \2', text)
+    text = re.sub(r'(?<![A-Za-z0-9.])(\d+\.\d+)\s*/\s*(\d+(?:\.\d+)?)(?![A-Za-z0-9.])', r'\1 或 \2', text)
+    # (b) 数字与带字母后缀的牌号并列（如 304 / 304L, 316 / 316L）：
+    text = re.sub(r'\b(\d{2,4}[A-Za-z]?)\s*/\s*(\d{2,4}[A-Za-z]+)\b', r'\1 或 \2', text)
+    text = re.sub(r'\b(\d{2,4}[A-Za-z]+)\s*/\s*(\d{2,4}[A-Za-z]?)\b', r'\1 或 \2', text)
+    # (c) 常见不锈钢数字牌号、法兰压力等级、管表号并列（如 304 / 316, Class 150 / 300, SCH 40 / 80）：
+    text = re.sub(r'\b(Class\s+\d+|SCH\s+\d+)\s*/\s*(\d+)\b', r'\1 或 \2', text, flags=re.IGNORECASE)
+    text = re.sub(r'\b(304|316|321|347|310|410|430|2205|2507)\s*/\s*(304|316|321|347|310|410|430|2205|2507)\b', r'\1 或 \2', text)
+
     # 7. 小数点逐位发音 (如 0.385 -> 零点三八五)
     digit_map = {'0':'零', '1':'一', '2':'二', '3':'三', '4':'四', '5':'五', '6':'六', '7':'七', '8':'八', '9':'九'}
     def fix_decimal_speech(m):
@@ -387,13 +417,23 @@ def clean_speech_text(text: str) -> str:
 
     # 8. 工程分式、带分数、比例与范围
     # 8.1 带分数 (如 1 1/4, 2 1/2, 1-1/4, 2-1/2, 3 3/8 -> 一又四分之一, 二又二分之一)
-    text = re.sub(r'(?<![A-Za-z0-9.])(\d+)[ \t\-]+(\d+)\s*/\s*(\d+)(?![A-Za-z0-9.])', convert_mixed_fraction, text)
+    text = re.sub(r'(?<![A-Za-z0-9.点零一二三四五六七八九])(\d+)[ \t\-]+(\d+)\s*/\s*(\d+)(?![A-Za-z0-9.点零一二三四五六七八九])', convert_mixed_fraction, text)
     # 8.2 纯数字真/假分数 (如 1/4, 1/2, 3/4, 3/8, 5/16, 11/16 -> 四分之一, 二分之一)
-    text = re.sub(r'(?<![A-Za-z0-9./])(\d{1,3})\s*/\s*(\d{1,3})(?![A-Za-z0-9./])', convert_simple_fraction, text)
-    # 8.3 带正负号的温度与温度区间（如 -269℃ ~ 900℃ -> 零下269摄氏度至900摄氏度）。
-    decimal_number = r'\d+(?:点[零一二三四五六七八九]+)?'
-    temperature_unit = r'(?:℃|°C|°F)'
-    text = re.sub(fr'([+\-−]?)({decimal_number})\s*({temperature_unit})\s*[~～至]\s*([+\-−]?)({decimal_number})\s*({temperature_unit})', convert_temperature_range, text)
+    # 严格断言前后不含“点”与中文数字，防止小数转换后的残留数字被截断误判为分数
+    text = re.sub(r'(?<![A-Za-z0-9./点零一二三四五六七八九])(\d{1,3})\s*/\s*(\d{1,3})(?![A-Za-z0-9./点零一二三四五六七八九])', convert_simple_fraction, text)
+    # 8.3 带正负号的温度与温度区间（如 -269℃ ~ 900℃ -> 零下269摄氏度至900摄氏度，70 至 95 °F -> 70 华氏度 至 95 华氏度）。
+    decimal_number = r'(?:\d+|零)(?:点[零一二三四五六七八九]+)?'
+    temperature_unit = r'(?:℃|°C|°F|℉)'
+    # (a) 双侧带温标区间 (如 -269℃ ~ 900℃, 70°F ~ 95°F)
+    text = re.sub(fr'([+\-−]?)({decimal_number})\s*({temperature_unit})\s*(?:[~～\-−至到]|\s+至\s+)\s*([+\-−]?)({decimal_number})\s*({temperature_unit})', convert_temperature_range, text)
+    # (b) 仅右侧带温标的温度区间 (如 70 至 95 ℉, 445 至 465 ℃, 70~95°F)
+    def convert_single_unit_temp_range(m):
+        start = spoken_signed_number(m.group(1), m.group(2))
+        end = spoken_signed_number(m.group(3), m.group(4))
+        u_name = temperature_unit_name(m.group(5))
+        return f'{start} {u_name} 至 {end} {u_name}'
+    text = re.sub(fr'([+\-−]?)({decimal_number})\s*(?:[~～至到]|\s+至\s+)\s*([+\-−]?)({decimal_number})\s*({temperature_unit})', convert_single_unit_temp_range, text)
+    # (c) 单个温度值 (如 -50 ℉, -50°F, 1100 ℉, +5°C)
     text = re.sub(fr'([+\-−]?)({decimal_number})\s*({temperature_unit})', convert_temperature_value, text)
     # 8.4 比例与普通数值范围 (2:1 -> 2 比 1, 10-20mm -> 10至20毫米)
     # 百分比口语化处理（全面支持带空格、全角％、LaTeX \%、正负号 ±5%/-12.5%/+5% 及范围）
@@ -506,13 +546,13 @@ def clean_speech_text(text: str) -> str:
     text = re.sub(r'\\text\{([^{}]+)\}', r'\1', text)
     text = re.sub(r'\$([^$]+)\$', r'\1', text)
 
-    # 12. 温标识别 (如 150 摄氏度, +5 摄氏度, -20 摄氏度)
+    # 12. 温标识别 (如 150 摄氏度, +5 摄氏度, -20 摄氏度, -50 华氏度)
     text = re.sub(r'(正\s*\d+|[+\\-]?\d+(?:点[\w]+)?)\s*(?:℃|°C|\^\s*\\circ\s*\\text\{C\}|\^\s*\\circ\s*C|\\degree\s*C)', r'\1 摄氏度 ', text)
-    text = re.sub(r'(正\s*\d+|[+\\-]?\d+(?:点[\w]+)?)\s*(?:°F|\^\s*\\circ\s*\\text\{F\}|\^\s*\\circ\s*F|\\degree\s*F)', r'\1 华氏度 ', text)
+    text = re.sub(r'(正\s*\d+|[+\\-]?\d+(?:点[\w]+)?)\s*(?:℉|°F|\^\s*\\circ\s*\\text\{F\}|\^\s*\\circ\s*F|\\degree\s*F)', r'\1 华氏度 ', text)
 
-    # 12.1 无数值前缀的温标单位（如单位列表中的 °C / °F）。
-    text = re.sub(r'(?<![A-Za-z0-9])°C\b', ' 摄氏度 ', text)
-    text = re.sub(r'(?<![A-Za-z0-9])°F\b', ' 华氏度 ', text)
+    # 12.1 无数值前缀的温标单位（如单位列表中的 °C / °F / ℉）。
+    text = re.sub(r'(?<![A-Za-z0-9])(?:°C|℃)(?![A-Za-z0-9])', ' 摄氏度 ', text)
+    text = re.sub(r'(?<![A-Za-z0-9])(?:°F|℉)(?![A-Za-z0-9])', ' 华氏度 ', text)
     # 12.2 角度识别：剩余的“数值°”按角度朗读（温标 °C / °F 已在前序规则中处理）。
     text = re.sub(r'([+\-−]?\d+(?:点[零一二三四五六七八九]+)?)\s*°(?![CFcf])', r'\1 度 ', text)
 
@@ -709,7 +749,7 @@ def generate_speech_audio(
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description="Clean speech text and generate TTS audio.")
-    parser.add_argument("--version", action="version", version="docx-speech-briefing-builder v1.5.2")
+    parser.add_argument("--version", action="version", version="docx-speech-briefing-builder v1.5.3")
     parser.add_argument("--input", help="Input markdown file")
     parser.add_argument("--output", help="Output mp3 file")
     parser.add_argument("--rate", default="+0%", help="Speech rate (default +0%% normal speed)")

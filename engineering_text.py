@@ -15,7 +15,7 @@ RE_METER = re.compile(r'(?<=\d|\/)([ 	]*)(m)' + POWER_ALL + r'(?![A-Za-z0-9_])|(
 
 # 3. 其他物理单位（MPa, Pa, N, J, W, kg, s, mol, L, K 等）：必须有显式脱字号 ^2, ^3 或本身已是 ²³⁴
 # 绝对禁止将 K3 (Kimi K3, K3芯片), S2 (S2钢材, S2赛季), N2 (N2工艺), L2 (L2缓存) 转换为上标！
-OTHER_UNITS = r'(?:MPa|GPa|kPa|Pa|kJ|MJ|J|kN|N|kg|mg|g|ms|min|s|h|mol|mL|L|K|W|kW|MW|Hz|kHz|MHz|GHz|V|kV|A|mA|Ω|ohm|bar|mbar|°C|°F|℃)'
+OTHER_UNITS = r'(?:MPa|GPa|kPa|Pa|kJ|MJ|J|kN|N|kg|mg|g|ms|min|s|h|mol|mL|L|K|W|kW|MW|Hz|kHz|MHz|GHz|V|kV|A|mA|Ω|ohm|bar|mbar|°C|°F|℃|℉)'
 RE_OTHER = re.compile(r'(?<![A-Za-z_])(' + OTHER_UNITS + r')' + POWER_CARET + r'(?![A-Za-z0-9_])')
 
 

@@ -188,6 +188,22 @@ def test_speech_cleaning():
     assert any(w in clean_speech_text("线能量 50 J/in. 以及 50 J/in") for w in ["J 每 英寸", "焦 每 英寸"]), "错误：J/in. 未转为'J 每 英寸'！"
     assert "英寸 每 min" in clean_speech_text("焊接速度 10 in./min"), "错误：in./min 未转为'英寸 每 min'！"
 
+    # 验证公英制数值对照斜杠、标准号并列斜杠与华氏度符号发音 (v1.5.3)
+    assert "79 或 3点一" in clean_speech_text("79 / 3.1"), "公制/英制数值对照 79 / 3.1 被误读为分号！"
+    assert "86 或 3点四" in clean_speech_text("86 / 3.4"), "公制/英制数值对照 86 / 3.4 被误读为分号！"
+    assert "610 或 2点零零" in clean_speech_text("610 / 2.00"), "公制/英制数值对照 610 / 2.00 被误读为分号！"
+    assert "53 或 2点一" in clean_speech_text("53 / 2.1"), "公制/英制数值对照 53 / 2.1 被误读为分号！"
+    assert "ASTM A153 或 A153M" in clean_speech_text("ASTM A153 / A153M"), "标准号并列 ASTM A153 / A153M 斜杠未读为'或'！"
+    assert "ASTM A123 或 A123M" in clean_speech_text("ASTM A123 / A123M"), "标准号并列 ASTM A123 / A123M 斜杠未读为'或'！"
+    assert "SA 350 或 SA 350M" in clean_speech_text("SA-350 / SA-350M"), "材料标准号 SA-350 / SA-350M 斜杠未读为'或'！"
+    assert "ISO 9001 或 ISO 14001" in clean_speech_text("ISO 9001 / ISO 14001"), "ISO标准号并列斜杠被误读为除以！"
+    assert "GB T 1234 或 GB T 5678" in clean_speech_text("GB/T 1234 / GB/T 5678"), "国标号并列斜杠被误读为除以！"
+    assert "零下 50 华氏度" in clean_speech_text("-50 ℉"), "华氏度符号 ℉ 负温发音漏读！"
+    assert "零下 50 华氏度" in clean_speech_text("（-50 ℉）"), "括号内华氏度负温漏读！"
+    assert "1100 华氏度" in clean_speech_text("1100 ℉"), "华氏度符号 ℉ 漏读！"
+    assert "70 华氏度 至 95 华氏度" in clean_speech_text("70 至 95 ℉"), "华氏度区间 70 至 95 ℉ 漏读！"
+    assert "70 华氏度 至 95 华氏度" in clean_speech_text("70~95°F"), "华氏度区间 70~95°F 漏读！"
+
     # 验证表面粗糙度与微米单位发音（v1.2.15）
     assert "Ra 3点二至6点三 微米" in clean_speech_text("Ra 3.2 - 6.3 μm"), "错误：Ra 3.2 - 6.3 μm 未转为'Ra 3点二至6点三 微米'！"
     assert "Ra 3点二 至 6点三 微米" in clean_speech_text("$Ra\\,3.2 \\sim 6.3\\,\\mu\\text{m}$"), "错误：LaTeX Ra 粗糙度未转为'Ra 3点二 至 6点三 微米'！"
