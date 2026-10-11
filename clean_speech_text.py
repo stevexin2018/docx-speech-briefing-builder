@@ -344,12 +344,15 @@ def clean_speech_text(text: str) -> str:
     text = re.sub(r'(?<=[\d\w])\s*/\s*(?=(?:Amd|AMD|Cor|COR|AC|Addendum|Errata)\b|[Aa]\d+\b)', ' ', text)
 
     # 4.5.2 标准代号及标准组织/技术规范代号中的斜杠消歧 (如 GB/T, QB/T, HG/T, JB/T, DB11/T, GB/Z, T/CSAE, ISO/IEC, ISO/TR, ISO/TS, ETRTO/ISO)
-    # (a) 左侧多字母/数字组合，右侧 1~4 字母后缀 (如 GB/T, QB/T, HG/T, DB11/T, GB/Z, ISO/IEC, ISO/TR, ETRTO/ISO)
-    text = re.sub(r'(?<![A-Za-z0-9_])([A-Za-z]{2,}\d*|[A-Za-z]+\d+)\s*/\s*([A-Za-z]{1,4})(?![A-Za-z0-9_])', r'\1 \2', text)
+    # (a) 大写标准组织代号带斜杠后缀 (如 ISO/IEC, ISO/TR, ETRTO/ISO, QB/T, DB11/T)
+    text = re.sub(r'(?<![A-Za-z0-9_])([A-Z]{2,}\d*|[A-Z]+\d+)\s*/\s*([A-Z]{1,4})(?![A-Za-z0-9_])', r'\1 \2', text)
     # (b) 左侧单/双字母前缀团体/地方标准 (如 T/CSAE, T/CAS, T/CEC)
-    text = re.sub(r'(?<![A-Za-z0-9_])([TtQqDdBb]{1,2})\s*/\s*([A-Za-z]{2,})(?![A-Za-z0-9_])', r'\1 \2', text)
-    # 4.6 多字母名称/缩写并列不按除法朗读；单字母公式变量 D/t、P/S 仍留给后续除法规则。
-    text = re.sub(r'\b([A-Za-z]{2,})\s*/\s*([A-Za-z]{2,})\b', r'\1 \2', text)
+    text = re.sub(r'(?<![A-Za-z0-9_])([TtQqDdBb]{1,2})\s*/\s*([A-Z]{2,})(?![A-Za-z0-9_])', r'\1 \2', text)
+
+    # 4.6 英文单词/词组并列斜杠统一读作“or”（如 Fine / Medium / Coarse, Pass / Fail, High / Medium / Low, Yes / No, True / False）
+    # 支持循环消除 2 个或多个连续斜杠并列，且保留单字母公式变量 D/t、P/S 等留给后续除法规则
+    for _ in range(3):
+        text = re.sub(r'\b([A-Za-z]{2,}(?:\s+or\s+[A-Za-z]{2,})*)\s*/\s*([A-Za-z]{2,})\b', r'\1 or \2', text)
     # 4.7 带材料体系标签的并列牌号 (如 Alloy 800HT / UNS N08811) 省略斜杠并自然停顿。
     material_label = r'(?:Alloy|UNS|Grade|Type)'
     text = re.sub(fr'\b({material_label}\s+[A-Za-z0-9.-]+)\s*/\s*({material_label}\s+[A-Za-z0-9.-]+)\b', r'\1 \2', text, flags=re.IGNORECASE)
