@@ -304,16 +304,27 @@ def clean_speech_text(text: str) -> str:
     text = re.sub(r'(?<![A-Za-z0-9_.,，])\d{8,30}(?![0-9A-Za-z_.,，])', _repl_long_digits, text)
 
     # 4. 【关键】条款、标准号、标识符、公英制对照与单位中的斜杠消歧（在分数与除法识别前执行）
-    # 4.0 两个标准号/规范号之间的“/”读作“或”（杜绝被后续分数或除法规则误读为“分之”或“除以”）
-    # (a) 同系列标准带前缀并列：如 ASTM A153 / A153M, ASTM A123 / A123M, ASME B16.5 / B16.47, SA-350 / SA-350M
-    std_org = r'(?:ASTM|ASME|ISO|EN|DIN|BS|JIS|AWS|API|NACE|MSS|AWWA|GB(?:\s*/\s*[TZtz])?|JB(?:\s*/\s*[Tt])?|HG(?:\s*/\s*[Tt])?|SH(?:\s*/\s*[Tt])?|NB(?:\s*/\s*[Tt])?|SY(?:\s*/\s*[Tt])?|TSG)'
-    std_num_token = r'[A-Za-z]{0,4}\s*-?\s*\d+(?:[.-]\d+)*(?:[A-Za-z]{1,3})?(?:\s*:\s*\d{4})?'
-    # 两个完整标准号并列：如 ISO 9001 / ISO 14001, GB/T 1234 / GB/T 5678, EN 10204 / DIN 50049, GB 150 / JB 4732
-    text = re.sub(fr'\b({std_org}\s+{std_num_token})\s*/\s*({std_org}\s+{std_num_token})(?![A-Za-z0-9])', r'\1 或 \2', text)
-    # 共享前置组织名的并列标准号：如 ASTM A153 / A153M, ASME B16.5 / B16.47, ASTM A90 / A90M
-    text = re.sub(fr'\b({std_org}\s+[A-Za-z]{{0,4}}\d+(?:\.\d+)?[A-Za-z]?)\s*/\s*([A-Za-z]{{0,4}}\d+(?:\.\d+)?[A-Za-z]?)(?![A-Za-z0-9.])', r'\1 或 \2', text)
-    # 独立带M公英制对照的标准编号：如 A153 / A153M, A123 / A123M, A90 / A90M, SA-350 / SA-350M, SA-240 / SA-240M, E112 / E112M
+    # 4.0 两个或多个标准号/规范号之间的“/”读作“或”（杜绝被后续分数或除法规则误读为“分之”或“除以”）
+    # (a) 标准组织与体系前缀
+    std_org = r'(?:ASTM|ASME|ISO|EN|DIN|BS|JIS|AWS|API|NACE|SSPC(?:\s*-\s*[A-Za-z0-9]+)?|AMPP|WRC|TEMA|NFPA|EJMA|MSS|AWWA|IEC|IEEE|UL|SAE|VDI|AD|CODAP|RCC-M|GB|JB|HG|SH|NB|SY|TSG)'
+    # (b) 标准编号 token（支持带前缀、点分号、横杠、年份版本、No.号、单字母类别、如 PA 2, SP 10, MR0175, 19840, B16.5, E186）：
+    std_num_token = r'(?:(?:No\.?\s*|[A-Za-z]{1,6}\s*-?\s*)?\d+(?:[.-]\d+)*(?:[A-Za-z]{1,3})?(?:\s*:\s*\d{4})?|[A-Za-z]\b)'
+
+    # 预处理：国标/行标组织前缀内部的 /T, /Z 等先转为空格（防止其斜杠与标准之间的并列斜杠冲突）
+    text = re.sub(r'\b(GB|JB|HG|SH|NB|SY|DB\d{2})\s*/\s*([TZtz])\b', r'\1 \2', text)
+    text = re.sub(r'\b(ISO)\s*/\s*(IEC|TR|TS)\b', r'\1 \2', text)
+
+    # 1. 跨组织或全称并列标准号：如 SSPC-PA 2 / ISO 19840, SSPC-SP 10 / NACE No. 2, NACE MR0175 / ISO 15156, ISO 2178 / ISO 2360
+    for _ in range(3):
+        text = re.sub(fr'\b({std_org}(?:\s+|-\s*){std_num_token})\s*/\s*({std_org}(?:\s+|-\s*){std_num_token})(?![A-Za-z0-9])', r'\1 或 \2', text)
+
+    # 2. 共享前置组织名的并列标准号（如 ASTM E186 / E446 / E280, WRC 107 / 297 / 537, ASME B16.5 / B16.47, TEMA R / C / B）：
+    for _ in range(3):
+        text = re.sub(fr'\b({std_org}(?:\s+|-\s*)[A-Za-z0-9.-]+(?:\s+或\s+[A-Za-z0-9.-]+)*)\s*/\s*([A-Za-z]{{0,4}}\s*-?\s*\d+(?:[.-]\d+)?[A-Za-z]?|[A-Z]\b)(?![A-Za-z0-9.])', r'\1 或 \2', text)
+
+    # 3. 独立带M公英制对照的标准编号：如 A153 / A153M, A123 / A123M, A90 / A90M, SA-350 / SA-350M, SA-240 / SA-240M, E112 / E112M
     text = re.sub(r'\b([A-Za-z]{1,3}-?\d{1,5})\s*/\s*(\1M)\b', r'\1 或 \2', text, flags=re.IGNORECASE)
+
     # 4.1 复合条款名并列，支持小数级条款号
     #     (如 QW-404.12/QW-404.33, UG-28/UG-29, VIII-1/VIII-2)
     clause_id = r'[A-Za-z]+-[A-Za-z0-9]+(?:\.[A-Za-z0-9]+)*'
