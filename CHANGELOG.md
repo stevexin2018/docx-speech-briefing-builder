@@ -1,3 +1,13 @@
+## [1.5.4] - 2026-10-15
+
+### 🚀 Added & Improved
+- **Edge-TTS 403 限流与重试耗尽备用容灾兜底 (High-Availability Fallback TTS)**:
+  - 在全音色轮转容灾链（Xiaoxiao -> Yunxi -> Xiaoyi -> Yunjian）耗尽或上游出现极端 403 阻断时，无缝平滑降级走备用短文本流式 TTS 合成，彻底避免流水线单点中断。
+- **英文单词间斜杠语音口语化 (English Word Slash Disambiguation)**:
+  - 规范英文单词间的斜杠朗读为 "or"（例如 `Fine / Medium / Coarse` -> `Fine or Medium or Coarse`），消除工程对照表中的杂音。
+- **复合标准代号与规范斜杠消歧 (Compound Standards Slash Verbalization)**:
+  - 支持复杂双规范并列（如 `SSPC-PA 2 / ISO 19840`）精准读作“或”，避免与除法及分式冲突。
+
 ## [1.5.3] - 2026-10-11
 
 ### 🐛 Fixed & Improved

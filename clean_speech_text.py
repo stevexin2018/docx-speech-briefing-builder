@@ -669,6 +669,31 @@ async def _synthesize_one_chunk(
                 last_err = e
                 await asyncio.sleep(0.8 * (attempt + 1))
 
+    # Edge-TTS 403 / 容灾全链耗尽时，无缝降级走高可用备用 TTS
+    try:
+        import urllib.parse, urllib.request, re
+        sentences = [s.strip() for s in re.split(r"([。！？；\n]+)", chunk) if s.strip()]
+        sub_chunks = []
+        curr = ""
+        for s in sentences:
+            if len(curr) + len(s) > 150 and curr:
+                sub_chunks.append(curr)
+                curr = s
+            else:
+                curr += s
+        if curr:
+            sub_chunks.append(curr)
+        fallback_data = bytearray()
+        for sub in sub_chunks:
+            url = "https://translate.google.com/translate_tts?ie=UTF-8&q=" + urllib.parse.quote(sub) + "&tl=zh-CN&client=tw-ob"
+            req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"})
+            with urllib.request.urlopen(req, timeout=15) as resp:
+                fallback_data.extend(resp.read())
+        if len(fallback_data) > 0:
+            return bytes(fallback_data)
+    except Exception:
+        pass
+
     raise RuntimeError(f"分块合成失败 (全音色容灾链重试耗尽): {last_err}")
 
 
