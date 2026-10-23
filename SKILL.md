@@ -48,6 +48,7 @@ python build_briefing.py --input report.md --docx report.docx --engine pandoc --
 ## 🛠️ 独立仓库架构与核心文件
 
 若本机存在 `references/host-workflow.md`，另读该文件中的本机入口、缓存与附件约定；当前版本和引擎能力以本文件及 `version.py` 为准。发布、发送等操作仍需用户在当前任务中授权。
+若存在 `references/codex-shared-usage.md`，读取其中 Windows 的 Python 路径、试用调用及交付目录约定；用户当前指定的位置优先。
 
 独立仓库：`https://github.com/stevexin2018/docx-speech-briefing-builder`
 - `version.py`：统一版本元数据定义
