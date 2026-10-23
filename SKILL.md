@@ -1,7 +1,8 @@
 ---
 name: docx-speech-briefing-builder
-version: 1.5.4
-updated: 2026-10-15
+metadata:
+  version: "1.5.4"
+  updated: "2026-10-23"
 description: 将 Markdown 深度工程报告自动转换为排版 Word 文档 (.docx) 与正常语速高品质语音讲解音频 (.mp3)。核心引擎已完全独立解耦至独立仓库 (https://github.com/stevexin2018/docx-speech-briefing-builder)。
 ---
 
@@ -15,6 +16,8 @@ description: 将 Markdown 深度工程报告自动转换为排版 Word 文档 (.
 2. **正常语速晓晓女声讲解音频 (`.mp3`)**：完整保留数学与工程运算符，口语化大纲编号与单位，默认以标准自然正常语速（+0%）生成高品质音频；
 3. **一体化并发执行引擎 (`build_briefing.py`)**：通过多线程并发池同时并行执行 Word 渲染与 Edge-TTS 音频流合成，彻底消灭串行等待时间；
 4. **TTS 分段受控并发合成**：多段文本默认双并发请求（`max_concurrency=2`），失败时自动降级回退串行逐段合成，兼顾速度与可靠性。
+
+路径朗读约定：Windows 文件夹、文件与注册表路径中的反斜杠 `\` 默认转换为中文逗号，让 TTS 自然短暂停顿，不逐层读“反斜杠”“杠”或“backslash”。例如 `D:\项目\报告` 读作“D 盘，项目，报告”；UNC 路径以“网络共享”开头，文件扩展名仍读“点”。此规则仅作用于语音清洗，Word 中保留原始路径，LaTeX 命令沿用原有处理；需要说明字符本身时，在讲解稿中直接写“反斜杠”。
 
 ---
 

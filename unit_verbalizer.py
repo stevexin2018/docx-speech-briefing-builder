@@ -182,13 +182,13 @@ def verbalize_text_units(text: str) -> str:
     text = re.sub(pattern_compound, _rep_compound, text)
     
     # 2. 单独的平方与立方单位（如 100 m², 25 mm², 50 cm³, 12 m^3, 20 m²）
-    pattern_pow_unit = r'([A-Za-z\u4e00-\u9fa50-9~～\-])\s*(mm|cm|dm|m|km|in|ft)\s*(?:(?:\^([234]))|([²³⁴]))(?![A-Za-z0-9²³⁴])'
+    # 不消耗前置字符，避免把独立的 mm² 拆成“m + m²”；字母边界保护型号与标识符。
+    pattern_pow_unit = r'(?<![A-Za-z_])(mm|cm|dm|km|in|ft|m)\s*(?:(?:\^([234]))|([²³⁴]))(?![A-Za-z0-9_²³⁴])'
     def _rep_pow(m):
-        prefix = m.group(1)
-        base_u = m.group(2)
-        pow_s = m.group(3) or m.group(4)
+        base_u = m.group(1)
+        pow_s = m.group(2) or m.group(3)
         spoken = parse_single_unit(f"{base_u}{pow_s}")
-        return f"{prefix} {spoken} "
+        return f" {spoken} "
     text = re.sub(pattern_pow_unit, _rep_pow, text)
     
     # 3. 单独特殊小单位及前缀单位（确保紧贴数字或在独立边界时被精准发音）

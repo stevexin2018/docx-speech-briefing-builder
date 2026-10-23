@@ -80,23 +80,23 @@ def convert_temperature_value(m):
     return f'{value} {unit}'
 
 def convert_path_to_speech(path_str: str) -> str:
-    """将文件系统路径、注册表路径与可执行文件名转换为易于 TTS 自然朗读的口语发音文本，精准保留反斜杠与扩展名发音。"""
+    """将路径转换为自然朗读文本，反斜杠用逗号短暂停顿，保留盘符与扩展名发音。"""
     p = path_str.strip('`"\'')
     
-    # 1. 驱动器盘符识别：C:\ -> C 盘 反斜杠, C:/ -> C 盘 斜杠, C: -> C 盘
-    p = re.sub(r'^([A-Za-z]):\\', r'\1 盘 反斜杠 ', p)
+    # 1. 驱动器盘符识别：C:\ -> C 盘，, C:/ -> C 盘 斜杠, C: -> C 盘
+    p = re.sub(r'^([A-Za-z]):\\+', r'\1 盘，', p)
     p = re.sub(r'^([A-Za-z]):/', r'\1 盘 斜杠 ', p)
     p = re.sub(r'^([A-Za-z]):(?![A-Za-z0-9])', r'\1 盘 ', p)
     
-    # 2. 注册表前缀识别：HKLM:\ -> H K L M 冒号 反斜杠
-    p = re.sub(r'^(HKLM|HKCU|HKCR|HKU|HKEY_[A-Z_]+):\\', r'\1 冒号 反斜杠 ', p)
+    # 2. 注册表前缀识别：HKLM:\ -> HKLM 冒号，
+    p = re.sub(r'^(HKLM|HKCU|HKCR|HKU|HKEY_[A-Z_]+):\\+', r'\1 冒号，', p)
     p = re.sub(r'^(HKLM|HKCU|HKCR|HKU|HKEY_[A-Z_]+):/', r'\1 冒号 斜杠 ', p)
     
-    # 3. UNC 网络共享前缀：\\ -> 反斜杠反斜杠
-    p = re.sub(r'^\\\\\\', '反斜杠反斜杠 ', p)
+    # 3. UNC 网络共享前缀：用“网络共享”保留语义，避免重复朗读分隔符
+    p = re.sub(r'^\\{2,}', '网络共享，', p)
     
-    # 4. 路径中所有剩余反斜杠 -> 反斜杠
-    p = p.replace('\\', ' 反斜杠 ')
+    # 4. 反斜杠层级分隔符用中文逗号产生自然短暂停顿，连续分隔符合并
+    p = re.sub(r'\\+', '，', p)
     
     # 5. 路径中正斜杠 -> 斜杠
     p = p.replace('/', ' 斜杠 ')
@@ -215,7 +215,7 @@ def clean_speech_text(text: str) -> str:
         latex_keywords = {"frac", "sqrt", "cdot", "times", "alpha", "beta", "gamma", "delta", "epsilon", "zeta", "eta", "theta", "iota", "kappa", "lambda", "mu", "nu", "xi", "pi", "rho", "sigma", "tau", "upsilon", "phi", "chi", "psi", "omega", "text", "mathrm", "le", "leq", "ge", "geq", "approx", "sim", "ne", "neq", "pm", "left", "right", "circ", "degree", "Delta", "Sigma", "Omega", "Phi", "Psi"}
         if word in latex_keywords:
             return m.group(0)
-        return " 反斜杠 " + word
+        return "，" + word
     text = re.sub(r"\\([A-Za-z]+)", _safe_path_bs, text)
 
     # 2.4 移除粗体/斜体/剩余行内代码等 Markdown 标记
@@ -581,7 +581,7 @@ def clean_speech_text(text: str) -> str:
     text = text.replace('Appendix', '附录')
     text = text.replace('kJ', ' 千焦 ')
     text = text.replace('MPa', ' 兆帕 ')
-    text = re.sub(r'(?<![A-Za-z_])mm(?![A-Za-z0-9_])', ' 毫米 ', text)
+    text = re.sub(r'(?<![A-Za-z_])mm(?![A-Za-z0-9_²³⁴])', ' 毫米 ', text)
     text = re.sub(r'\bRT([1-4])\b', r' R T \1 ', text)
     text = re.sub(r'\bRT\b', ' R T 无损检测 ', text)
 

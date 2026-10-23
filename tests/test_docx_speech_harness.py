@@ -149,7 +149,7 @@ def test_speech_cleaning():
     assert "二分之一 英寸" in clean_speech_text('壁厚 1/2" 接管'), "错误：1/2\" 未转为'二分之一 英寸'！"
     assert "零点五 英寸" in clean_speech_text('壁厚 0.5 in 或 0.5"'), "错误：0.5 in / 0.5\" 未转为'零点五 英寸'！"
     assert "BL 2 英寸 150 RF" in clean_speech_text('盲板 BL2"-150 RF'), "错误：BL2\"-150 RF 未转为'BL 2 英寸 150 RF'！"
-    assert "J 每 英寸" in clean_speech_text("线能量 50 J/in. 以及 50 J/in"), "错误：J/in. 未转为'J 每 英寸'！"
+    assert "焦 每 英寸" in clean_speech_text("线能量 50 J/in. 以及 50 J/in"), "错误：J/in. 未转为'焦 每 英寸'！"
     assert "英寸 每 min" in clean_speech_text("焊接速度 10 in./min"), "错误：in./min 未转为'英寸 每 min'！"
 
     # 验证表面粗糙度与微米单位发音（v1.2.15）

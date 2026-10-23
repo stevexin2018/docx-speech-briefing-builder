@@ -28,8 +28,12 @@ class QuantityTests(unittest.TestCase):
             self.assertEqual(clean_inline_text(source), 'mm²')
             self.assertEqual(clean_speech_text(source), '平方毫米。')
         self.assertEqual(clean_inline_text('10,mm3; cm2; m^3; mm4'), '10 mm³; cm²; m³; mm⁴')
-        self.assertEqual(clean_speech_text('N/mm2'), 'N 每 平方毫米。')
-        self.assertEqual(clean_speech_text('kg/m3'), 'kg 每 立方米。')
+        self.assertEqual(clean_speech_text('N/mm2'), '牛 每 平方毫米。')
+        self.assertEqual(clean_speech_text('kg/m3'), '千克 每 立方米。')
+        for source, expected in [('cm²', '平方厘米。'), ('km³', '立方千米。'), ('10mm²', '10 平方毫米。'), ('面积mm²', '面积 平方毫米。')]:
+            self.assertEqual(clean_speech_text(source), expected)
+        for identifier in ('itemm²', 'itemm2', 'mm20', 'K3', 'S2', 'm2', 'unit_mm²', 'mm²_value'):
+            self.assertEqual(clean_speech_text(identifier), identifier.replace('_', ' ') + '。')
         self.assertEqual(clean_inline_text('itemm2 mm20 `mm2`'), 'itemm2 mm20 `mm2`')
 
     def test_document(self):
