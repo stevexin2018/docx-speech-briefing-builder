@@ -349,6 +349,14 @@ def clean_speech_text(text: str) -> str:
     # (b) 左侧单/双字母前缀团体/地方标准 (如 T/CSAE, T/CAS, T/CEC)
     text = re.sub(r'(?<![A-Za-z0-9_])([TtQqDdBb]{1,2})\s*/\s*([A-Z]{2,})(?![A-Za-z0-9_])', r'\1 \2', text)
 
+    # 4.5.3 英制单位斜杠消歧 (如 J/in, J/in., kJ/in, in/min, in./min, in/s, in./s)
+    text = re.sub(r'(?<![A-Za-z0-9])([kK]?[jJ]|kJ|J)\s*/\s*in(?:\.|\b)', r'\1 每 英寸 ', text)
+    text = re.sub(r'(?<![A-Za-z0-9])in(?:\.|\b)\s*/\s*(min|s|h)\b', lambda m: ' 英寸 每 ' + {'min':'分钟','s':'秒','h':'小时'}[m[1]] + ' ', text)
+    text = re.sub(r'(?<![A-Za-z0-9])in\s*\^?\s*2\b|\bsq\.?\s*in(?:\.|\b)', ' 平方英寸 ', text, flags=re.IGNORECASE)
+    text = re.sub(r'(?<![A-Za-z0-9])in\s*\^?\s*3\b|\bcu\.?\s*in(?:\.|\b)', ' 立方英寸 ', text, flags=re.IGNORECASE)
+    text = re.sub(r'\boz\s*/\s*ft(?:²|\^2|2)\b', ' 盎司 每 平方英尺 ', text, flags=re.IGNORECASE)
+    text = re.sub(r'\bmils\b', ' 密耳 ', text, flags=re.IGNORECASE)
+
     # 4.6 英文单词/词组并列斜杠统一读作“or”（如 Fine / Medium / Coarse, Pass / Fail, High / Medium / Low, Yes / No, True / False）
     # 支持循环消除 2 个或多个连续斜杠并列，且保留单字母公式变量 D/t、P/S 等留给后续除法规则
     for _ in range(3):
@@ -360,13 +368,6 @@ def clean_speech_text(text: str) -> str:
     material_grade = r'(?=[A-Za-z0-9.-]*[A-Za-z])(?=[A-Za-z0-9.-]*\d)[A-Za-z0-9.-]+'
     text = re.sub(fr'\b({material_grade})\s*/\s*({material_grade})\b', r'\1 \2', text)
 
-    # 4.5.3 英制单位斜杠消歧 (如 J/in, J/in., kJ/in, in/min, in./min, in/s, in./s)
-    text = re.sub(r'(?<![A-Za-z0-9])([kK]?[jJ]|kJ|J)\s*/\s*in(?:\.|\b)', r'\1 每 英寸 ', text)
-    text = re.sub(r'(?<![A-Za-z0-9])in(?:\.|\b)\s*/\s*(min|s|h)\b', r' 英寸 每 \1 ', text)
-    text = re.sub(r'(?<![A-Za-z0-9])in\s*\^?\s*2\b|\bsq\.?\s*in(?:\.|\b)', ' 平方英寸 ', text, flags=re.IGNORECASE)
-    text = re.sub(r'(?<![A-Za-z0-9])in\s*\^?\s*3\b|\bcu\.?\s*in(?:\.|\b)', ' 立方英寸 ', text, flags=re.IGNORECASE)
-    text = re.sub(r'\boz\s*/\s*ft(?:²|\^2|2)\b', ' 盎司 每 平方英尺 ', text, flags=re.IGNORECASE)
-    text = re.sub(r'\bmils\b', ' 密耳 ', text, flags=re.IGNORECASE)
     # 4.5.4 括号或表头中公英制单位对照的斜杠读作“或”（如 微米 / 密耳, 克 每 平方米 / 盎司 每 平方英尺, MPa / ksi, mm / in.）
     unit_cn_en = r'(?:微米|毫米|厘米|米|千米|英寸|英尺|密耳|兆帕|千帕|吉帕|帕|焦|千焦|牛|千牛|克|千克|毫克|盎司|磅|平方米|平方厘米|平方毫米|平方英寸|平方英尺|立方米|立方厘米|升|毫升|摄氏度|华氏度|MPa|GPa|kPa|Pa|psi|ksi|bar|mm|cm|m|in\.?|ft\.?|mils?|oz|lb|g|kg)(?:\s*每\s*(?:平方米|平方厘米|平方毫米|平方英寸|平方英尺|立方米|立方厘米|米|毫米|秒|分|小时|in\.?|ft\.?|m|s|min|h))?'
     text = re.sub(fr'({unit_cn_en})\s*/\s*({unit_cn_en})', r'\1 或 \2', text, flags=re.IGNORECASE)
@@ -629,7 +630,7 @@ def split_text_chunks(text: str, max_chars: int = 1000) -> list:
         chunks.append(current_chunk.strip())
     return chunks
 
-# 工业级高可用容灾备选音色梯队 (Primary -> Fallback)
+# 可供调用方显式选择的备选音色；默认保持请求的音色。
 DEFAULT_FALLBACK_VOICES = [
     "zh-CN-XiaoxiaoNeural",  # 首选：晓晓（标准自然温和女声）
     "zh-CN-YunxiNeural",     # 备选 1：云希（自然阳光男声）
@@ -641,13 +642,13 @@ async def _synthesize_one_chunk(
     chunk: str, voice: str, rate: str, proxy: str, max_retries: int = 3,
     fallback_voices: list = None
 ) -> bytes:
-    """合成单个分块，含指数退避重试与多音色自动容灾降级。返回音频字节。"""
+    """合成单块并退避重试；仅在显式传入时使用备选音色。"""
     import edge_tts
     import asyncio
 
-    # 构造容灾音色候选链 (指定的 voice 首选，其余备用音色补齐)
+    # 默认固定音色，避免不同分块的声音发生变化。
     if fallback_voices is None:
-        fallback_voices = [v for v in DEFAULT_FALLBACK_VOICES if v != voice]
+        fallback_voices = []  # Alternate voices require explicit caller opt-in.
     voice_chain = [voice] + [v for v in fallback_voices if v != voice]
 
     chunk_data = bytearray()
@@ -657,7 +658,7 @@ async def _synthesize_one_chunk(
         for attempt in range(max_retries):
             try:
                 chunk_data.clear()
-                communicate = edge_tts.Communicate(chunk, voice=cur_voice, rate=rate, proxy=proxy)
+                communicate = edge_tts.Communicate(chunk, voice=cur_voice, rate=rate, proxy=proxy, connect_timeout=15, receive_timeout=60)
                 async for packet in communicate.stream():
                     if packet["type"] == "audio":
                         chunk_data.extend(packet["data"])
@@ -667,34 +668,23 @@ async def _synthesize_one_chunk(
                     raise RuntimeError("未接收到音频数据包")
             except Exception as e:
                 last_err = e
-                await asyncio.sleep(0.8 * (attempt + 1))
+                status = getattr(e, 'status', None)
+                if status in (401, 403):
+                    raise RuntimeError(f"TTS authorization rejected: HTTP {status}") from None
+                if attempt + 1 < max_retries:
+                    retry_after = (getattr(e, 'headers', None) or {}).get('Retry-After')
+                    try:
+                        delay = float(retry_after) if retry_after else (5 * 2 ** attempt if status == 429 else 2 ** attempt)
+                    except (TypeError, ValueError):
+                        from email.utils import parsedate_to_datetime
+                        from datetime import datetime, timezone
+                        try:
+                            delay = max(0, (parsedate_to_datetime(retry_after) - datetime.now(timezone.utc)).total_seconds())
+                        except (TypeError, ValueError, OverflowError):
+                            delay = 5 * 2 ** attempt
+                    await asyncio.sleep(max(0, delay))
 
-    # Edge-TTS 403 / 容灾全链耗尽时，无缝降级走高可用备用 TTS
-    try:
-        import urllib.parse, urllib.request, re
-        sentences = [s.strip() for s in re.split(r"([。！？；\n]+)", chunk) if s.strip()]
-        sub_chunks = []
-        curr = ""
-        for s in sentences:
-            if len(curr) + len(s) > 150 and curr:
-                sub_chunks.append(curr)
-                curr = s
-            else:
-                curr += s
-        if curr:
-            sub_chunks.append(curr)
-        fallback_data = bytearray()
-        for sub in sub_chunks:
-            url = "https://translate.google.com/translate_tts?ie=UTF-8&q=" + urllib.parse.quote(sub) + "&tl=zh-CN&client=tw-ob"
-            req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"})
-            with urllib.request.urlopen(req, timeout=15) as resp:
-                fallback_data.extend(resp.read())
-        if len(fallback_data) > 0:
-            return bytes(fallback_data)
-    except Exception:
-        pass
-
-    raise RuntimeError(f"分块合成失败 (全音色容灾链重试耗尽): {last_err}")
+    raise RuntimeError(f"分块合成失败: {type(last_err).__name__}; retries exhausted") from None
 
 
 async def synthesize_speech_async(
@@ -714,7 +704,7 @@ async def synthesize_speech_async(
     - 智能自然语言断句分块（800~1000字/块），消灭单连接超时截断；
     - 分块级指数退避重试机制，从容应对网络闪断与 TCP RST；
     - **受控并发合成**：默认双并发请求（max_concurrency=2），显著缩短多段文本合成耗时；
-    - **自动降级回退**：并发失败时自动退回串行逐段合成，保证交付可靠性；
+    - **失败收敛**：分块退避重试耗尽后取消其余请求，不重放整篇文本；
     - 内存/流式平滑无损拼接写入目标 MP3。
     """
     import edge_tts
@@ -751,11 +741,14 @@ async def synthesize_speech_async(
             for idx, data in done:
                 results[idx] = data
             concurrent_ok = True
-        except Exception:
-            # 并发失败，下面走串行降级
-            results = [None] * len(chunks)
+        except BaseException:
+            # Do not leave concurrent requests alive or replay all chunks after a 429.
+            for task in tasks:
+                task.cancel()
+            await asyncio.gather(*tasks, return_exceptions=True)
+            raise
 
-    # --- 串行降级（或单段文本直接走此路径）---
+    # --- 单段文本或显式串行模式 ---
     if not concurrent_ok:
         for idx, chunk in enumerate(chunks):
             try:
@@ -764,14 +757,19 @@ async def synthesize_speech_async(
                 raise RuntimeError(f"语音合成在第 {idx+1}/{len(chunks)} 分段失败: {e}")
 
     # --- 按序拼接写入 ---
-    temp_output_path = output_path + ".tmp"
-    with open(temp_output_path, "wb") as f_out:
-        for data in results:
-            f_out.write(data)
-
-    if os.path.exists(output_path):
-        os.remove(output_path)
-    os.replace(temp_output_path, output_path)
+    import tempfile
+    from pathlib import Path
+    target = Path(output_path).resolve()
+    target.parent.mkdir(parents=True, exist_ok=True)
+    descriptor, temp_output_path = tempfile.mkstemp(prefix=".briefing-audio-", suffix=".mp3", dir=target.parent)
+    try:
+        with os.fdopen(descriptor, "wb") as f_out:
+            for data in results:
+                f_out.write(data)
+        os.replace(temp_output_path, target)
+    finally:
+        if os.path.exists(temp_output_path):
+            os.unlink(temp_output_path)
 
 def generate_speech_audio(
     cleaned_text: str,
@@ -781,9 +779,9 @@ def generate_speech_audio(
     fallback_voices: list = None,
     proxy: str = None
 ) -> None:
-    """同步入口包装函数（支持多音色容灾）"""
+    """同步入口，总时限 600 秒；异步调用方自行设置总时限。"""
     import asyncio
-    asyncio.run(synthesize_speech_async(cleaned_text, output_path, rate=rate, voice=voice, fallback_voices=fallback_voices, proxy=proxy))
+    asyncio.run(asyncio.wait_for(synthesize_speech_async(cleaned_text, output_path, rate=rate, voice=voice, fallback_voices=fallback_voices, proxy=proxy), timeout=600))
 
 if __name__ == "__main__":
     import argparse

@@ -171,7 +171,7 @@ def verbalize_text_units(text: str) -> str:
     # 分母候选集（支持 ^2, ^3, ², ³ 等）
     den_pat = r'(?:m(?:(?:\^?[234])|[²³⁴])?|cm(?:(?:\^?[234])|[²³⁴])?|mm(?:(?:\^?[234])|[²³⁴])?|km(?:(?:\^?[234])|[²³⁴])?|in|ft|s|min|h|d|g|kg|L|mL|mol|K)'
     
-    pattern_compound = fr'({num_pat})\s*/\s*({den_pat})(?![A-Za-z0-9²³⁴])'
+    pattern_compound = fr'(?<![A-Za-z_])({num_pat})\s*/\s*({den_pat})(?![A-Za-z0-9_²³⁴])'
     
     def _rep_compound(m):
         num_u = m.group(1)

@@ -3,7 +3,7 @@ r"""
 test_docx_speech_harness.py
 ===========================
 回归与自进化测试套件 (v1.2.6)：
-验证 Word 渲染与 3 倍速语音清洗引擎：
+验证 Word 渲染与正常语速语音清洗引擎：
 1. 数学与工程运算/比较符号完整保留 (D/t > 80 -> D 除以 t 大于 80, P/S <= 0.385 -> P 除以 S 小于等于 零点三八五)；
 2. 标准条款并列斜杠口语化 (Part 5.2.4/5.4.3 -> Part 5 点 2 点 4 5 点 4 点 3, UG-28/UG-29 -> U G 第 28 条 U G 第 29 条)；
 3. 工程分式与带分数口语化 (1/4 -> 四分之一, 1 1/4 -> 一又四分之一, 1-1/4 -> 一又四分之一)；
@@ -150,7 +150,7 @@ def test_speech_cleaning():
     assert "零点五 英寸" in clean_speech_text('壁厚 0.5 in 或 0.5"'), "错误：0.5 in / 0.5\" 未转为'零点五 英寸'！"
     assert "BL 2 英寸 150 RF" in clean_speech_text('盲板 BL2"-150 RF'), "错误：BL2\"-150 RF 未转为'BL 2 英寸 150 RF'！"
     assert "焦 每 英寸" in clean_speech_text("线能量 50 J/in. 以及 50 J/in"), "错误：J/in. 未转为'焦 每 英寸'！"
-    assert "英寸 每 min" in clean_speech_text("焊接速度 10 in./min"), "错误：in./min 未转为'英寸 每 min'！"
+    assert "英寸 每 分钟" in clean_speech_text("焊接速度 10 in./min"), "错误：in./min 未转为'英寸 每 分钟'！"
 
     # 验证表面粗糙度与微米单位发音（v1.2.15）
     assert "Ra 3点二至6点三 微米" in clean_speech_text("Ra 3.2 - 6.3 μm"), "错误：Ra 3.2 - 6.3 μm 未转为'Ra 3点二至6点三 微米'！"

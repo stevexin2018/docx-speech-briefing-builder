@@ -8,7 +8,7 @@
 
 The opt-in Pandoc engine converts typed Markdown to editable Word math and heading styles. It adds protected engineering-unit normalization, repeating table headers, source diagnostics, and staged output validation. The default remains `legacy` during the alpha.
 
-Install [Pandoc 3.12.1 or newer](https://pandoc.org/installing.html), then use its executable from PATH, `PANDOC_PATH`, or `--pandoc`:
+Install [Pandoc 3.12.1 or newer](https://pandoc.org/installing.html). Lookup order is `--pandoc`, `PANDOC_PATH`, a manually installed `.runtime/pandoc/pandoc.exe` (Windows) or `.runtime/pandoc/pandoc` (Linux), then PATH. The optional runtime directory is ignored by Git; binaries are never downloaded implicitly.
 
 ```bash
 python build_briefing.py --input report.md --docx report.docx --engine pandoc --diagnostics diagnostics.json
@@ -29,9 +29,9 @@ See [the v2 engine guide](docs/v2-engine.md) for source conventions, diagnostics
 - 🎙️ **Normal-Speed Speech Audio (.mp3) Generator**:
   - Powered by neural TTS (`zh-CN-XiaoxiaoNeural` at `+0%` natural rate).
   - **Controlled concurrent TTS synthesis** (`max_concurrency=2`): multiple text segments are synthesized in parallel, reducing multi-segment audio generation time by 60-75%.
-  - **Automatic fallback**: if concurrent synthesis fails (rate limit, network issues), automatically degrades to sequential per-segment synthesis for reliable delivery.
+  - **Bounded retries**: respects Retry-After, cancels remaining requests on failure, and preserves the previous MP3. The requested voice is retained by default; alternate voices require explicit API opt-in. Synchronous synthesis has a 600-second total deadline.
   - Engineering-grade text preprocessing: cleans formulas, converts decimal points (e.g. `0.45` -> `零点四五`), handles ranges/temperatures/units.
-  - **Zero noise guarantee**: thoroughly eliminates annoying repetitive syllables from hyphens or punctuation.
+  - Cleans redundant punctuation and uses short pauses between Windows path components.
 
 - 🤖 **Universal Agent Support**:
   - Compatible with **OpenAI Codex, OpenClaw, Claude Code, Cursor, LangChain, AutoGPT**, or standalone Python scripts.

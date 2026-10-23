@@ -8,13 +8,15 @@ Word OMML (Office Math Markup Language) 矢量数学公式适配器：
 """
 
 import xml.etree.ElementTree as ET
+import re
 import latex2mathml.converter
+from xml.sax.saxutils import escape
 
 M_NS = "http://schemas.openxmlformats.org/officeDocument/2006/math"
 
 def _mathml_node_to_omml(elem):
     tag = elem.tag.split('}')[-1]
-    text = (elem.text or '').strip()
+    text = escape((elem.text or '').strip())
 
     if tag == 'mi':
         # 变量：默认斜体
@@ -54,6 +56,16 @@ def _mathml_node_to_omml(elem):
     elif tag == 'msqrt':
         inner = ''.join(_mathml_node_to_omml(c) for c in elem)
         return f'<m:rad><m:radPr><m:degHide m:val="on"/></m:radPr><m:deg/><m:e>{inner}</m:e></m:rad>'
+    elif tag == 'mroot':
+        base = _mathml_node_to_omml(elem[0])
+        degree = _mathml_node_to_omml(elem[1])
+        return f'<m:rad><m:deg>{degree}</m:deg><m:e>{base}</m:e></m:rad>'
+    elif tag == 'mtable':
+        return '<m:m>' + ''.join(_mathml_node_to_omml(c) for c in elem) + '</m:m>'
+    elif tag == 'mtr':
+        return '<m:mr>' + ''.join(_mathml_node_to_omml(c) for c in elem) + '</m:mr>'
+    elif tag == 'mtd':
+        return '<m:e>' + ''.join(_mathml_node_to_omml(c) for c in elem) + '</m:e>'
     elif tag in ['mrow', 'math']:
         return ''.join(_mathml_node_to_omml(c) for c in elem)
     else:
@@ -74,6 +86,11 @@ def latex_to_omml(latex_code: str, display: bool = False) -> str:
         tex = tex[1:-1].strip()
 
     mathml_str = latex2mathml.converter.convert(tex)
+    # latex2mathml may leave a raw \& in an mtext node. Repair only text
+    # ampersands, retaining numeric/named XML entities and matrix separators.
+    mathml_str = re.sub(r'(<mtext[^>]*>)(.*?)(</mtext>)',
+        lambda m: m[1] + re.sub(r'&(?!#(?:x[0-9A-Fa-f]+|[0-9]+);|amp;|lt;|gt;|quot;|apos;)',
+                               '&amp;', m[2].replace(r'\&', '&')) + m[3], mathml_str)
     root = ET.fromstring(mathml_str)
     inner_omml = _mathml_node_to_omml(root)
 

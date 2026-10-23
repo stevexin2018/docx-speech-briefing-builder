@@ -18,6 +18,8 @@ from .template import configure_reference, enhance_document
 
 MARKDOWN_FORMAT = "markdown+tex_math_dollars+tex_math_single_backslash-smart"
 MINIMUM_PANDOC = (3, 12, 1)
+RUNTIME_PANDOC = Path(__file__).resolve().parents[1] / ".runtime" / "pandoc" / (
+    "pandoc.exe" if os.name == "nt" else "pandoc")
 NS = {"w": "http://schemas.openxmlformats.org/wordprocessingml/2006/main",
       "m": "http://schemas.openxmlformats.org/officeDocument/2006/math"}
 
@@ -35,12 +37,13 @@ class _Abort(Exception):
 
 
 def find_pandoc(explicit=None):
-    candidate = explicit or os.environ.get("PANDOC_PATH") or shutil.which("pandoc")
+    candidate = explicit or os.environ.get("PANDOC_PATH") or (
+        str(RUNTIME_PANDOC) if RUNTIME_PANDOC.is_file() else shutil.which("pandoc"))
     if candidate:
         resolved = shutil.which(str(candidate)) or (str(Path(candidate).resolve()) if Path(candidate).is_file() else None)
         if resolved:
             return resolved
-    raise FileNotFoundError("未找到 Pandoc 3.12.1 或更新版本；请设置 --pandoc 或 PANDOC_PATH，或将 Pandoc 加入 PATH。")
+    raise FileNotFoundError("未找到 Pandoc 3.12.1 或更新版本；请设置 --pandoc 或 PANDOC_PATH，或安装至 .runtime/pandoc 或 PATH。")
 
 
 def _execute(pandoc, arguments, data=None, cwd=None):

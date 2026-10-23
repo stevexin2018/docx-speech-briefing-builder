@@ -15,7 +15,7 @@ description: 将 Markdown 深度工程报告自动转换为排版 Word 文档 (.
 1. **排版 Word 文档 (`.docx`)**：包含页眉页脚、标题层级、Unicode/OMML 公式转换、数据表格交替底色、引用高亮框、**自动剥离 ASCII 文本边框与纯符号分隔线**、**自动规范化温度度数排版（如 5^ / +5^ / +5^\circ\text{C} -> 5°C / +5°C）**；
 2. **正常语速晓晓女声讲解音频 (`.mp3`)**：完整保留数学与工程运算符，口语化大纲编号与单位，默认以标准自然正常语速（+0%）生成高品质音频；
 3. **一体化并发执行引擎 (`build_briefing.py`)**：通过多线程并发池同时并行执行 Word 渲染与 Edge-TTS 音频流合成，彻底消灭串行等待时间；
-4. **TTS 分段受控并发合成**：多段文本默认双并发请求（`max_concurrency=2`），失败时自动降级回退串行逐段合成，兼顾速度与可靠性。
+4. **TTS 分段受控并发合成**：多段文本默认双并发请求（`max_concurrency=2`），尊重 Retry-After 退避重试；失败取消其余请求，不整篇重放。默认保持指定音色，不自动换音色或服务。同步入口总时限 600 秒；异步调用方自行设置总时限。失败保留已有 MP3。
 
 路径朗读约定：Windows 文件夹、文件与注册表路径中的反斜杠 `\` 默认转换为中文逗号，让 TTS 自然短暂停顿，不逐层读“反斜杠”“杠”或“backslash”。例如 `D:\项目\报告` 读作“D 盘，项目，报告”；UNC 路径以“网络共享”开头，文件扩展名仍读“点”。此规则仅作用于语音清洗，Word 中保留原始路径，LaTeX 命令沿用原有处理；需要说明字符本身时，在讲解稿中直接写“反斜杠”。
 
@@ -23,7 +23,7 @@ description: 将 Markdown 深度工程报告自动转换为排版 Word 文档 (.
 
 当前为 alpha，默认仍使用兼容引擎 `legacy`。用户明确需要 Word 或音频时，统一入口支持只传 `--docx`、只传 `--mp3`，或同时传入两者。
 
-启用新引擎时使用 `--engine pandoc`，需要 Pandoc 3.12.1 或更新版本；通过 `--pandoc`、`PANDOC_PATH` 或 PATH 提供可执行文件，不要将机器专属安装路径写入共享代码。示例：
+启用新引擎时使用 `--engine pandoc`，需要 Pandoc 3.12.1 或更新版本；查找顺序为 `--pandoc`、`PANDOC_PATH`、本机手动安装的 `.runtime/pandoc/pandoc.exe`（Windows）或 `.runtime/pandoc/pandoc`（Linux）、PATH。运行目录不入 Git，也不自动下载程序。不要将机器专属安装路径写入共享代码。示例：
 
 ```bash
 python build_briefing.py --input report.md --docx report.docx --engine pandoc --diagnostics diagnostics.json
@@ -36,6 +36,9 @@ python build_briefing.py --input report.md --docx report.docx --engine pandoc --
 ---
 
 ## 🛠️ 独立仓库架构与核心文件
+
+若本机存在 `references/host-workflow.md`，另读该文件中的本机入口、缓存与附件约定；当前版本和引擎能力以本文件及 `version.py` 为准。发布、发送等操作仍需用户在当前任务中授权。
+
 独立仓库：`https://github.com/stevexin2018/docx-speech-briefing-builder`
 - `version.py`：统一版本元数据定义
 - `CHANGELOG.md`：版本演进与发布历史

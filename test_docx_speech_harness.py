@@ -186,7 +186,7 @@ def test_speech_cleaning():
     assert "零点五 英寸" in clean_speech_text('壁厚 0.5 in 或 0.5"'), "错误：0.5 in / 0.5\" 未转为'零点五 英寸'！"
     assert "BL 2 英寸 150 RF" in clean_speech_text('盲板 BL2"-150 RF'), "错误：BL2\"-150 RF 未转为'BL 2 英寸 150 RF'！"
     assert any(w in clean_speech_text("线能量 50 J/in. 以及 50 J/in") for w in ["J 每 英寸", "焦 每 英寸"]), "错误：J/in. 未转为'J 每 英寸'！"
-    assert "英寸 每 min" in clean_speech_text("焊接速度 10 in./min"), "错误：in./min 未转为'英寸 每 min'！"
+    assert "英寸 每 分钟" in clean_speech_text("焊接速度 10 in./min"), "错误：in./min 未转为'英寸 每 分钟'！"
 
     # 验证公英制数值对照斜杠、标准号并列斜杠与华氏度符号发音 (v1.5.3)
     assert "79 或 3点一" in clean_speech_text("79 / 3.1"), "公制/英制数值对照 79 / 3.1 被误读为分号！"

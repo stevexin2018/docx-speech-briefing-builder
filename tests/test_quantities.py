@@ -36,6 +36,12 @@ class QuantityTests(unittest.TestCase):
             self.assertEqual(clean_speech_text(identifier), identifier.replace('_', ' ') + '。')
         self.assertEqual(clean_inline_text('itemm2 mm20 `mm2`'), 'itemm2 mm20 `mm2`')
 
+    def test_imperial_rate_units(self):
+        for unit, spoken in (("in/min", "分钟"), ("in./min", "分钟"), ("in/s", "秒"), ("in./s", "秒"), ("in/h", "小时"), ("in./h", "小时")):
+            self.assertEqual(clean_speech_text(f"焊接速度 10 {unit}"), f"焊接速度 10 英寸 每 {spoken}。")
+        for unit in ("J/in", "J/in."):
+            self.assertEqual(clean_speech_text(unit), "焦 每 英寸。")
+
     def test_document(self):
         with tempfile.TemporaryDirectory() as directory:
             output = str(Path(directory) / 'quantities.docx')

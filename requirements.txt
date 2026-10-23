@@ -1,4 +1,4 @@
 python-docx>=0.8.11
-edge-tts>=6.1.0
+edge-tts>=7.3.1,<8
 requests>=2.28.0
-latex2mathml>=3.81.1
+latex2mathml>=3.81.1,<4

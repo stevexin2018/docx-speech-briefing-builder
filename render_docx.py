@@ -237,6 +237,10 @@ def create_docx_document(topic_title, chapter_id, markdown_content, output_path,
     if any((pandoc_path, reference_doc, diagnostics_path)):
         raise ValueError("Pandoc、参考模板和结构化诊断选项需要 --engine pandoc。")
     doc = docx.Document()
+    for style_name in ['Normal', 'Title'] + [f'Heading {n}' for n in range(1, 7)]:
+        style = doc.styles[style_name]
+        style.font.name = '微软雅黑'
+        style.element.get_or_add_rPr().get_or_add_rFonts().set(qn('w:eastAsia'), '微软雅黑')
     
     # 页面边距
     sections = doc.sections
@@ -264,6 +268,11 @@ def create_docx_document(topic_title, chapter_id, markdown_content, output_path,
     run_foot.font.size = Pt(8.5)
     run_foot.font.color.rgb = RGBColor(160, 160, 160)
 
+    p_foot.add_run(' | ')
+    page = OxmlElement('w:fldSimple')
+    page.set(qn('w:instr'), 'PAGE')
+    p_foot._p.append(page)
+
     # 1. 顶部 Header Banner
     table_head = doc.add_table(rows=1, cols=1)
     table_head.alignment = WD_TABLE_ALIGNMENT.CENTER
@@ -272,6 +281,7 @@ def create_docx_document(topic_title, chapter_id, markdown_content, output_path,
     set_cell_border(cell_h, top={'val':'none'}, bottom={'val':'none'}, left={'val':'none'}, right={'val':'none'})
 
     p_title = cell_h.paragraphs[0]
+    p_title.style = doc.styles["Title"]
     p_title.alignment = WD_ALIGN_PARAGRAPH.CENTER
     p_title.paragraph_format.space_before = Pt(14)
     p_title.paragraph_format.space_after = Pt(4)
@@ -332,7 +342,7 @@ def create_docx_document(topic_title, chapter_id, markdown_content, output_path,
             # 优先尝试 OMML 原生矢量公式嵌入，失败自动 Fallback 回退
             omml_success = False
             try:
-                omml_xml = latex_to_omml(formula_text, display=False)
+                omml_xml = latex_to_omml(formula_text, display=True)
                 p._element.append(parse_xml(omml_xml))
                 omml_success = True
             except Exception:
@@ -366,6 +376,9 @@ def create_docx_document(topic_title, chapter_id, markdown_content, output_path,
                 col_count = max(len(r) for r in rows_data)
                 table = doc.add_table(rows=len(rows_data), cols=col_count)
                 table.alignment = WD_TABLE_ALIGNMENT.CENTER
+                header_flag = OxmlElement('w:tblHeader')
+                header_flag.set(qn('w:val'), 'true')
+                table.rows[0]._tr.get_or_add_trPr().append(header_flag)
 
                 for r_idx, row in enumerate(rows_data):
                     is_header = (r_idx == 0)
@@ -394,31 +407,12 @@ def create_docx_document(topic_title, chapter_id, markdown_content, output_path,
                 doc.add_paragraph().paragraph_format.space_after = Pt(6)
             continue
 
-        # 标题 ###
-        if line_s.startswith('### '):
-            p = doc.add_paragraph()
-            p.paragraph_format.space_before = Pt(16)
-            p.paragraph_format.space_after = Pt(6)
+        # Semantic styles enable Word's native navigation and outline levels.
+        heading = re.match(r'^(#{1,6})\s+(.+)$', line_s)
+        if heading:
+            p = doc.add_paragraph(style=f'Heading {len(heading.group(1))}')
             p.paragraph_format.keep_with_next = True
-            run = p.add_run(clean_inline_text(line_s.replace('### ', '')))
-            run.font.name = "微软雅黑"
-            run.font.size = Pt(13)
-            run.font.bold = True
-            run.font.color.rgb = RGBColor(15, 76, 129)
-            i += 1
-            continue
-
-        # 标题 ####
-        if line_s.startswith('#### '):
-            p = doc.add_paragraph()
-            p.paragraph_format.space_before = Pt(10)
-            p.paragraph_format.space_after = Pt(4)
-            p.paragraph_format.keep_with_next = True
-            run = p.add_run(clean_inline_text(line_s.replace('#### ', '')))
-            run.font.name = "微软雅黑"
-            run.font.size = Pt(11)
-            run.font.bold = True
-            run.font.color.rgb = RGBColor(40, 60, 90)
+            p.add_run(clean_inline_text(heading.group(2)))
             i += 1
             continue
 

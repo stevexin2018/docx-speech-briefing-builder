@@ -1,4 +1,4 @@
-## [2.0.0a1] - Unreleased
+## [2.0.0a1] - 2026-10-23 (prerelease)
 
 - Add an opt-in Pandoc AST/native DOCX engine with Word styles, table equations,
   protected unit normalization, source diagnostics and atomic publication.
@@ -8,6 +8,13 @@
   flattening it, and share CLI version metadata.
 - Add behavioral tests and a v2 engine guide. Private report fixtures and runtime
   binaries are not part of the repository.
+- Preserve ARM deployment improvements: safe XML escaping, indexed roots,
+  matrices, heading styles, repeated table headers and page fields in the legacy
+  renderer; fix imperial rate pronunciation before English slash handling.
+- Keep the requested TTS voice, honor Retry-After, bound synchronous synthesis,
+  cancel failed parallel requests without replay, and publish MP3 atomically.
+- Support an ignored, manually installed per-checkout Pandoc runtime so both
+  Windows and ARM can use the verified version without changing system Pandoc.
 
 ## [1.5.4] - 2026-10-15
 

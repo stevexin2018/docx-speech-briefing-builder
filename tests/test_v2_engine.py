@@ -63,6 +63,16 @@ class NormalizationTests(unittest.TestCase):
 
 
 class MissingDependencyTests(unittest.TestCase):
+    def test_managed_runtime_precedes_system_pandoc(self):
+        with tempfile.TemporaryDirectory() as folder:
+            executable = Path(folder) / "pandoc"
+            executable.touch()
+            with patch("briefing_v2.engine.RUNTIME_PANDOC", executable), patch.dict(os.environ, {}, clear=True):
+                with patch("briefing_v2.engine.shutil.which", return_value=None):
+                    self.assertEqual(find_pandoc(), str(executable.resolve()))
+                    with self.assertRaises(FileNotFoundError):
+                        find_pandoc(str(executable) + "-missing")
+
     def test_failure_has_structured_diagnostic_and_no_docx(self):
         with tempfile.TemporaryDirectory() as folder:
             output, diagnostic = Path(folder) / "out.docx", Path(folder) / "diagnostic.json"

@@ -8,7 +8,10 @@ alpha. The TTS engine retains its existing pronunciation rules.
 
 Install the Python requirements and Pandoc 3.12.1 or newer separately. Pandoc is
 not bundled or downloaded implicitly. Executable lookup is `--pandoc`, then
-`PANDOC_PATH`, then PATH. The validation baseline is Pandoc 3.12.1 on Windows.
+`PANDOC_PATH`, then a manually installed `.runtime/pandoc/pandoc.exe` on Windows
+or `.runtime/pandoc/pandoc` on Linux, then PATH. A managed runtime takes precedence
+over an older system installation. The runtime directory is ignored by Git.
+The validation baseline is Pandoc 3.12.1 on Windows and Linux ARM64.
 
 ```bash
 # Word only, with an explicitly requested diagnostics report
@@ -90,6 +93,14 @@ must be distinct. No automatic fallback changes the requested engine.
 When both outputs are requested, each runs independently. A partial failure raises
 `BriefingBuildError` with a report identifying completed and failed outputs; CLI
 exit status is nonzero. Successful Word output remains available if TTS fails.
+
+TTS retains the requested voice by default. Alternate Edge voices require an
+explicit `fallback_voices` API argument; there is no implicit change of service.
+Chunks retry with backoff and Retry-After; authorization errors stop immediately.
+An exhausted chunk cancels the other requests without replaying the whole text.
+The synchronous entry has a 600-second deadline, with 15-second connection and
+60-second receive timeouts. Async callers must set their own total deadline.
+MP3 publication uses a unique staged file and atomic replacement.
 
 ## Python API
 
