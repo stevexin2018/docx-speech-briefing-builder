@@ -1,5 +1,9 @@
 # docx-speech-briefing-builder
 
+**最新试用版 / Preview:** [v2.0.0a1 — 原生 Word 引擎 Alpha](https://github.com/stevexin2018/docx-speech-briefing-builder/releases/tag/v2.0.0a1) · **稳定版 / Stable:** [v1.5.4](https://github.com/stevexin2018/docx-speech-briefing-builder/releases/tag/v1.5.4)
+
+GitHub's sidebar `Latest` badge refers to the stable release. The v2 alpha is available from the preview link above; enable its Word engine with `--engine pandoc`.
+
 > 🚀 **Universal AI Agent Skill & Python Tool**: Automated Markdown to elegant Word (`.docx`) reports with LaTeX/Unicode math, structured tables, header/footer branding, and natural-speed speech audio (`.mp3`) with concurrent TTS synthesis.
 
 ---
