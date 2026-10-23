@@ -400,4 +400,6 @@ def build_cached_briefing(source, docx=None, mp3=None, title=None, topic='Techno
         stack.close()
     if not record['ready_for_delivery']:
         raise CachedBuildError(record)
-    return record
+    # Compatibility adapters need the cache snapshot from this locked attempt,
+    # rather than a later read of a manifest another process may have updated.
+    return {**record, 'assets': deepcopy(state['assets'])}

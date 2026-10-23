@@ -213,6 +213,8 @@ class AudioCacheTests(TrialFixture, unittest.TestCase):
         first = workflow.build_cached_briefing(self.source, self.word, self.audio, engine='legacy',
             workers={'docx': self.word_worker, 'mp3': fail}, audio_optional=True)
         self.assertEqual(first['delivery_mode'], 'word_only')
+        self.assertIn('docx', first['assets'])
+        self.assertNotIn('mp3', first['assets'])
         self.assertNotIn('secret', Path(first['record_path']).read_text(encoding='utf-8'))
         second = self.cached(engine='legacy', audio_optional=True)
         self.assertEqual(second['rebuilt'], ['mp3'])
