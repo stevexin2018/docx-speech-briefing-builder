@@ -1,3 +1,17 @@
+## [2.0.0a2] - 2026-10-23 (prerelease)
+
+- Add a dedicated Pandoc trial CLI with content/configuration caches and an
+  separate JSON record for each attempt, including cache hits and failures.
+- Isolate Word cache keys by engine, core code/version, Pandoc version/binary,
+  template content and Word dependencies. Keep audio caching independent of Word
+  options; invalidate it for changed speech text, voice, rate or TTS code/runtime.
+- Record source hashes, engine/configuration, timings, cache outcomes, warnings
+  and errors. Preserve original source locations and replay cached diagnostics.
+- Share the workflow with the ARM OpenClaw adapter, which gains explicit trial
+  options while preserving existing scheduled-call defaults and Word-only recovery.
+- Lock manifests and individual outputs on Windows/Linux; stage and validate
+  assets before replacement, and retain successful branches for retry.
+
 ## [2.0.0a1] - 2026-10-23 (prerelease)
 
 - Add an opt-in Pandoc AST/native DOCX engine with Word styles, table equations,

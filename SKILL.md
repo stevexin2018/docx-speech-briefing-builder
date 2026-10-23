@@ -1,12 +1,12 @@
 ---
 name: docx-speech-briefing-builder
 metadata:
-  version: "2.0.0a1"
+  version: "2.0.0a2"
   updated: "2026-10-23"
 description: 将 Markdown 深度工程报告自动转换为排版 Word 文档 (.docx) 与正常语速高品质语音讲解音频 (.mp3)。核心引擎已完全独立解耦至独立仓库 (https://github.com/stevexin2018/docx-speech-briefing-builder)。
 ---
 
-# Word & Normal Speed Speech Briefing Builder (v2.0.0a1)
+# Word & Normal Speed Speech Briefing Builder (v2.0.0a2)
 
 ## 📌 概述
 本 Skill 作为 OpenClaw 技能协议入口，底层直接连接 **`docx-speech-briefing-builder` 独立组件库**（独立 Git 仓库：`https://github.com/stevexin2018/docx-speech-briefing-builder`）。
@@ -21,7 +21,17 @@ description: 将 Markdown 深度工程报告自动转换为排版 Word 文档 (.
 
 ## v2 原生 Word 引擎试用
 
-当前为 alpha，默认仍使用兼容引擎 `legacy`。用户明确需要 Word 或音频时，统一入口支持只传 `--docx`、只传 `--mp3`，或同时传入两者。
+用户要求 v2 试用、新引擎或带缓存和诊断记录的报告时，使用 `trial_briefing.py`。此入口默认 `pandoc`，支持仅 Word、仅 MP3 或两者；只生成用户要求的格式。Windows 和 ARM 共用相同实现。
+
+```bash
+python trial_briefing.py --input report.md --docx report.docx --mp3 report.mp3 --title "工程技术报告"
+```
+
+试用入口自动保存 `.assets.json` 缓存清单，以及输出旁 `.briefing` 目录内每次调用的 JSON 和 Word 诊断；缓存命中、失败也记录。查看 `engine`、`status`、`rebuilt`、`reused`、`review_required`，不要把旧引擎缓存当成新引擎验证。诊断文件默认不作为附件交付；不支持的公式不得静默回退旧引擎。录音缓存独立于 Word 引擎和模板，改变语速、音色或语音清洗逻辑时才失效。试用音频需 ffprobe 校验。
+
+ARM 原有 `openclaw_assets.py` 附件入口可加 `--trial`（默认新引擎），或明确指定 `--engine pandoc`；未指定时沿用兼容入口。试用操作不自动发送、发布或更新软件。详细缓存规则、记录字段和两端调用见 [docs/trial-workflow.md](docs/trial-workflow.md)。
+
+当前为 alpha，原有 `build_briefing.py`、`render_docx.py` 默认仍使用兼容引擎 `legacy`；专用试用入口默认 `pandoc`。用户明确需要 Word 或音频时，统一入口支持只传 `--docx`、只传 `--mp3`，或同时传入两者。
 
 启用新引擎时使用 `--engine pandoc`，需要 Pandoc 3.12.1 或更新版本；查找顺序为 `--pandoc`、`PANDOC_PATH`、本机手动安装的 `.runtime/pandoc/pandoc.exe`（Windows）或 `.runtime/pandoc/pandoc`（Linux）、PATH。运行目录不入 Git，也不自动下载程序。不要将机器专属安装路径写入共享代码。示例：
 
@@ -29,7 +39,7 @@ description: 将 Markdown 深度工程报告自动转换为排版 Word 文档 (.
 python build_briefing.py --input report.md --docx report.docx --engine pandoc --diagnostics diagnostics.json
 ```
 
-新引擎通过文档结构分别处理正文、数学、代码、路径和表格。支持原生公式、标题样式和单位上下标；未知公式或内容丢失会使 Word 构建失败，保留已有输出文件。诊断 JSON 仅在指定 `--diagnostics` 时写出。出现 `success_with_warnings` 时，应先核对提示内容再交付正式报告。
+新引擎通过文档结构分别处理正文、数学、代码、路径和表格。支持原生公式、标题样式和单位上下标；未知公式或内容丢失会使 Word 构建失败，保留已有输出文件。直接使用原有构建入口时，诊断 JSON 仅在指定 `--diagnostics` 时写出；专用试用入口自动记录。出现 `success_with_warnings` 时，应先核对提示内容再交付正式报告。
 
 数学使用 `$...$`、`$$...$$`、`\(...\)` 或 `\[...\]`；代码和路径优先使用反引号，含空格的路径使用反引号或引号。不要将有歧义的 `5^` 自动补成温度，也不要自动将代码中的表达式改成数学公式。错误码、API、模板配置及支持边界见 [docs/v2-engine.md](docs/v2-engine.md)。
 

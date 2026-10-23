@@ -15,14 +15,14 @@ class BriefingBuildError(RuntimeError):
 
 
 def build_docx_worker(input_md, output_docx, title, topic_id, *, engine="legacy", pandoc_path=None,
-                       reference_doc=None, diagnostics_path=None):
+                       reference_doc=None, diagnostics_path=None, source_name=None):
     from render_docx import create_docx_document
     started = time.time()
     with open(input_md, "r", encoding="utf-8") as stream:
         markdown = stream.read()
     report = create_docx_document(title, topic_id, markdown, output_docx, engine=engine,
                                  pandoc_path=pandoc_path, reference_doc=reference_doc,
-                                 diagnostics_path=diagnostics_path, source_name=os.path.abspath(input_md))
+                                 diagnostics_path=diagnostics_path, source_name=source_name or os.path.abspath(input_md))
     if report:
         from briefing_v2.diagnostics import print_diagnostics
         print_diagnostics(report["diagnostics"])

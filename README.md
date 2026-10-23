@@ -1,6 +1,6 @@
 # docx-speech-briefing-builder
 
-**最新试用版 / Preview:** [v2.0.0a1 — 原生 Word 引擎 Alpha](https://github.com/stevexin2018/docx-speech-briefing-builder/releases/tag/v2.0.0a1) · **稳定版 / Stable:** [v1.5.4](https://github.com/stevexin2018/docx-speech-briefing-builder/releases/tag/v1.5.4)
+**最新试用版 / Preview:** [v2.0.0a2 — 原生 Word 引擎 Alpha](https://github.com/stevexin2018/docx-speech-briefing-builder/releases/tag/v2.0.0a2) · **稳定版 / Stable:** [v1.5.4](https://github.com/stevexin2018/docx-speech-briefing-builder/releases/tag/v1.5.4)
 
 GitHub's sidebar `Latest` badge refers to the stable release. The v2 alpha is available from the preview link above; enable its Word engine with `--engine pandoc`.
 
@@ -11,6 +11,12 @@ GitHub's sidebar `Latest` badge refers to the stable release. The v2 alpha is av
 ## v2.0 alpha structured Word engine
 
 The opt-in Pandoc engine converts typed Markdown to editable Word math and heading styles. It adds protected engineering-unit normalization, repeating table headers, source diagnostics, and staged output validation. The default remains `legacy` during the alpha.
+
+For daily v2 trials, use `python trial_briefing.py --input report.md --docx report.docx`.
+This dedicated entry defaults to Pandoc and adds separate Word/audio caches and a
+JSON record for every attempt, including cache hits and failures. Add `--mp3` only
+when audio is requested; cached audio validation requires `ffprobe` on PATH.
+See [the trial workflow guide](docs/trial-workflow.md) for Windows/ARM usage and record fields.
 
 Install [Pandoc 3.12.1 or newer](https://pandoc.org/installing.html). Lookup order is `--pandoc`, `PANDOC_PATH`, a manually installed `.runtime/pandoc/pandoc.exe` (Windows) or `.runtime/pandoc/pandoc` (Linux), then PATH. The optional runtime directory is ignored by Git; binaries are never downloaded implicitly.
 

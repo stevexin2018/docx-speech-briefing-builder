@@ -6,3 +6,6 @@ __pycache__/
 *.log
 /tmp/
 .runtime/
+*.assets.json
+*.briefing/
+*.briefing.lock
