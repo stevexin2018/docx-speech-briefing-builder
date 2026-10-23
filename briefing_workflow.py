@@ -11,6 +11,7 @@ import math
 import os
 from pathlib import Path
 import platform
+import re
 import shutil
 import subprocess
 import tempfile
@@ -160,9 +161,26 @@ def _error_report(error, engine, source, output):
     if hasattr(error, 'report') and 'diagnostics' in error.report:
         result = deepcopy(error.report)
     else:
-        code = 'DEPENDENCY_NOT_FOUND' if isinstance(error, FileNotFoundError) else 'BUILD_FAILED'
+        code, message = 'BUILD_FAILED', f'构建失败（{type(error).__name__}）；已有输出保留。'
+        if isinstance(error, FileNotFoundError):
+            code = 'DEPENDENCY_NOT_FOUND'
+            message = ('未找到 ffprobe 或语音所需文件；请检查音频运行环境。' if engine == 'edge-tts' else
+                       '所需文件或程序不存在；请检查 Pandoc 可执行文件、参考模板和运行依赖。')
+        elif isinstance(error, PermissionError):
+            code, message = 'FILE_ACCESS_DENIED', '无法读写文件；请检查占用状态和目录权限，已有文件保留。'
+        elif isinstance(error, TimeoutError):
+            code, message = 'BUILD_TIMEOUT', '构建超时；请检查网络、上游服务和运行环境后重试。'
+        elif str(error) == 'Generated asset did not pass validation':
+            code, message = 'OUTPUT_VALIDATION_FAILED', '生成的文件未通过格式或内容完整性检查，已有文件保留。'
+        elif engine == 'edge-tts':
+            status = re.search(r'HTTP\s*(401|403|429)\b', str(error))
+            code = 'AUDIO_BUILD_FAILED'
+            message = f'语音构建失败（{type(error).__name__}）；请检查网络和上游服务。'
+            if status:
+                code = 'TTS_AUTH_REJECTED' if status[1] in {'401', '403'} else 'TTS_RATE_LIMITED'
+                message = f'语音上游返回 HTTP {status[1]}；请检查服务可用性后重试。'
         result = {'engine': engine, 'status': 'failed', 'diagnostics': [_diagnostic(
-            code, f'构建失败（{type(error).__name__}）；已有输出保留。', source)]}
+            code, message, source)]}
     result.update(source=str(source), output=str(output))
     for item in result['diagnostics']:
         item['source'] = str(source)

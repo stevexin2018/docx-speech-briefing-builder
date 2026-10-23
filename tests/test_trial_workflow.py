@@ -234,3 +234,13 @@ class AudioCacheTests(TrialFixture, unittest.TestCase):
         self.assertIsNone(result['engine'])
         self.assertIsNone(result['word_diagnostics_path'])
         self.assertEqual(result['rebuilt'], ['mp3'])
+
+    def test_tts_authorization_failure_keeps_safe_actionable_diagnostic(self):
+        def fail(*args):
+            raise RuntimeError('TTS authorization rejected: HTTP 403 https://user:secret@host')
+        with self.assertRaises(workflow.CachedBuildError) as caught:
+            workflow.build_cached_briefing(self.source, mp3=self.audio, workers={'mp3': fail})
+        diagnostic = caught.exception.report['diagnostics'][0]
+        self.assertEqual(diagnostic['code'], 'TTS_AUTH_REJECTED')
+        self.assertIn('403', diagnostic['message'])
+        self.assertNotIn('secret', Path(caught.exception.report['record_path']).read_text(encoding='utf-8'))
