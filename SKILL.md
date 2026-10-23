@@ -1,12 +1,12 @@
 ---
 name: docx-speech-briefing-builder
 metadata:
-  version: "1.5.4"
+  version: "2.0.0a1"
   updated: "2026-10-23"
 description: 将 Markdown 深度工程报告自动转换为排版 Word 文档 (.docx) 与正常语速高品质语音讲解音频 (.mp3)。核心引擎已完全独立解耦至独立仓库 (https://github.com/stevexin2018/docx-speech-briefing-builder)。
 ---
 
-# Word & Normal Speed Speech Briefing Builder (v1.5.4)
+# Word & Normal Speed Speech Briefing Builder (v2.0.0a1)
 
 ## 📌 概述
 本 Skill 作为 OpenClaw 技能协议入口，底层直接连接 **`docx-speech-briefing-builder` 独立组件库**（独立 Git 仓库：`https://github.com/stevexin2018/docx-speech-briefing-builder`）。
@@ -19,11 +19,25 @@ description: 将 Markdown 深度工程报告自动转换为排版 Word 文档 (.
 
 路径朗读约定：Windows 文件夹、文件与注册表路径中的反斜杠 `\` 默认转换为中文逗号，让 TTS 自然短暂停顿，不逐层读“反斜杠”“杠”或“backslash”。例如 `D:\项目\报告` 读作“D 盘，项目，报告”；UNC 路径以“网络共享”开头，文件扩展名仍读“点”。此规则仅作用于语音清洗，Word 中保留原始路径，LaTeX 命令沿用原有处理；需要说明字符本身时，在讲解稿中直接写“反斜杠”。
 
+## v2 原生 Word 引擎试用
+
+当前为 alpha，默认仍使用兼容引擎 `legacy`。用户明确需要 Word 或音频时，统一入口支持只传 `--docx`、只传 `--mp3`，或同时传入两者。
+
+启用新引擎时使用 `--engine pandoc`，需要 Pandoc 3.12.1 或更新版本；通过 `--pandoc`、`PANDOC_PATH` 或 PATH 提供可执行文件，不要将机器专属安装路径写入共享代码。示例：
+
+```bash
+python build_briefing.py --input report.md --docx report.docx --engine pandoc --diagnostics diagnostics.json
+```
+
+新引擎通过文档结构分别处理正文、数学、代码、路径和表格。支持原生公式、标题样式和单位上下标；未知公式或内容丢失会使 Word 构建失败，保留已有输出文件。诊断 JSON 仅在指定 `--diagnostics` 时写出。出现 `success_with_warnings` 时，应先核对提示内容再交付正式报告。
+
+数学使用 `$...$`、`$$...$$`、`\(...\)` 或 `\[...\]`；代码和路径优先使用反引号，含空格的路径使用反引号或引号。不要将有歧义的 `5^` 自动补成温度，也不要自动将代码中的表达式改成数学公式。错误码、API、模板配置及支持边界见 [docs/v2-engine.md](docs/v2-engine.md)。
+
 ---
 
 ## 🛠️ 独立仓库架构与核心文件
 独立仓库：`https://github.com/stevexin2018/docx-speech-briefing-builder`
-- `version.py`：版本元数据定义 (`__version__ = "1.5.4"`)
+- `version.py`：统一版本元数据定义
 - `CHANGELOG.md`：版本演进与发布历史
 - `build_briefing.py`：**一体化并行构建引擎**（Word 渲染 + TTS 流式音频全并发）
 - `render_docx.py`：Word 渲染排版引擎

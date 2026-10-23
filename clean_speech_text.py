@@ -787,8 +787,9 @@ def generate_speech_audio(
 
 if __name__ == "__main__":
     import argparse
+    from version import __version__
     parser = argparse.ArgumentParser(description="Clean speech text and generate TTS audio.")
-    parser.add_argument("--version", action="version", version="docx-speech-briefing-builder v1.5.3")
+    parser.add_argument("--version", action="version", version=f"docx-speech-briefing-builder v{__version__}")
     parser.add_argument("--input", help="Input markdown file")
     parser.add_argument("--output", help="Output mp3 file")
     parser.add_argument("--rate", default="+0%", help="Speech rate (default +0%% normal speed)")

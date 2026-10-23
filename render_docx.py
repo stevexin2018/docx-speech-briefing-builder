@@ -13,12 +13,16 @@ import os
 import sys
 import docx
 from engineering_text import normalize_quantities
-from omml_adapter import latex_to_omml
 from docx.shared import Inches, Pt, RGBColor
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.enum.table import WD_TABLE_ALIGNMENT
 from docx.oxml import OxmlElement, parse_xml
 from docx.oxml.ns import qn, nsdecls
+
+def latex_to_omml(latex_code, display=False):
+    # Keep the legacy converter lazy so the Pandoc route has no legacy math dependency.
+    from omml_adapter import latex_to_omml as convert
+    return convert(latex_code, display=display)
 
 def set_cell_background(cell, fill_hex):
     tcPr = cell._element.get_or_add_tcPr()
@@ -220,7 +224,18 @@ def clean_inline_text(text):
     return text.strip()
 
 
-def create_docx_document(topic_title, chapter_id, markdown_content, output_path, theme_color="0F4C81"):
+def create_docx_document(topic_title, chapter_id, markdown_content, output_path, theme_color="0F4C81", *,
+                         engine="legacy", pandoc_path=None, reference_doc=None, diagnostics_path=None,
+                         source_name="<markdown>"):
+    if engine == "pandoc":
+        from briefing_v2 import render_markdown
+        return render_markdown(markdown_content, output_path, title=topic_title, topic_id=chapter_id,
+                               pandoc_path=pandoc_path, reference_doc=reference_doc,
+                               diagnostics_path=diagnostics_path, source_name=source_name)
+    if engine != "legacy":
+        raise ValueError(f"Unknown Word engine: {engine}")
+    if any((pandoc_path, reference_doc, diagnostics_path)):
+        raise ValueError("Pandoc、参考模板和结构化诊断选项需要 --engine pandoc。")
     doc = docx.Document()
     
     # 页面边距
@@ -488,14 +503,35 @@ def create_docx_document(topic_title, chapter_id, markdown_content, output_path,
 
 if __name__ == "__main__":
     import argparse
+    from version import __version__
     parser = argparse.ArgumentParser(description="Render Markdown to Professional Word Document.")
-    parser.add_argument("--version", action="version", version="docx-speech-briefing-builder v1.2.24")
+    parser.add_argument("--version", action="version", version=f"docx-speech-briefing-builder v{__version__}")
     parser.add_argument("--title", default="工程技术报告", help="Title")
     parser.add_argument("--topic-id", default="BPVC", help="Topic ID")
     parser.add_argument("--input", required=True, help="Input markdown path")
     parser.add_argument("--output", required=True, help="Output docx path")
+    parser.add_argument("--engine", choices=("legacy", "pandoc"), default="legacy", help="Word engine (default: legacy)")
+    parser.add_argument("--pandoc", help="Pandoc executable path (or set PANDOC_PATH)")
+    parser.add_argument("--reference-doc", help="Custom Word style reference (.docx)")
+    parser.add_argument("--diagnostics", help="Write structured conversion diagnostics to this JSON path")
     args = parser.parse_args()
+    if args.engine == "legacy" and any((args.pandoc, args.reference_doc, args.diagnostics)):
+        parser.error("--pandoc、--reference-doc、--diagnostics 需要 --engine pandoc。")
 
     with open(args.input, "r", encoding="utf-8") as f:
         md_text = f.read()
-    create_docx_document(args.title, args.topic_id, md_text, args.output)
+    try:
+        report = create_docx_document(args.title, args.topic_id, md_text, args.output,
+                                     engine=args.engine, pandoc_path=args.pandoc,
+                                     reference_doc=args.reference_doc, diagnostics_path=args.diagnostics,
+                                     source_name=os.path.abspath(args.input))
+    except Exception as error:
+        if not hasattr(error, "diagnostics"):
+            raise
+        from briefing_v2.diagnostics import print_diagnostics
+        print_diagnostics(error.diagnostics, ("error",))
+        sys.exit(1)
+    if report:
+        from briefing_v2.diagnostics import print_diagnostics
+        print_diagnostics(report["diagnostics"])
+        print(f"Word 文档构建成功: {args.output} ({report['output_counts']['math']} 个原生公式)")

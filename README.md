@@ -4,6 +4,20 @@
 
 ---
 
+## v2.0 alpha structured Word engine
+
+The opt-in Pandoc engine converts typed Markdown to editable Word math and heading styles. It adds protected engineering-unit normalization, repeating table headers, source diagnostics, and staged output validation. The default remains `legacy` during the alpha.
+
+Install [Pandoc 3.12.1 or newer](https://pandoc.org/installing.html), then use its executable from PATH, `PANDOC_PATH`, or `--pandoc`:
+
+```bash
+python build_briefing.py --input report.md --docx report.docx --engine pandoc --diagnostics diagnostics.json
+```
+
+The same command supports Word only, MP3 only, or both. Audio and Word report success independently; a failed audio request does not discard a successful Word output. Unknown or unconverted formulas fail the new Word build without replacing an existing document. Diagnostics JSON is created only when requested.
+
+See [the v2 engine guide](docs/v2-engine.md) for source conventions, diagnostics, custom Word references, and regression tests. Full LaTeX packages, automatic equation numbering, and interpretation of math written as code are outside this alpha's scope.
+
 ## 🌟 Features
 
 - 📄 **Professional Word (.docx) Engine**:
@@ -33,7 +47,7 @@ pip install -r requirements.txt
 ```
 
 ### Dependencies
-- Python 3.8+
+- Python 3.10+ (the declared `latex2mathml` dependency requires it)
 - `python-docx`
 - `edge-tts`
 

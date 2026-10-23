@@ -1,3 +1,14 @@
+## [2.0.0a1] - Unreleased
+
+- Add an opt-in Pandoc AST/native DOCX engine with Word styles, table equations,
+  protected unit normalization, source diagnostics and atomic publication.
+- Retain the legacy Word default and existing positional API. The unified CLI now
+  accepts Word only, audio only, or both, with independent output status.
+- Preserve code/path content, expose unsupported math instead of silently
+  flattening it, and share CLI version metadata.
+- Add behavioral tests and a v2 engine guide. Private report fixtures and runtime
+  binaries are not part of the repository.
+
 ## [1.5.4] - 2026-10-15
 
 ### 🚀 Added & Improved
