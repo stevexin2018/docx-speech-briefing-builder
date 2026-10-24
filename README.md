@@ -1,8 +1,8 @@
 # docx-speech-briefing-builder
 
-**稳定版 / Stable:** [v2.0.0](https://github.com/stevexin2018/docx-speech-briefing-builder/releases/tag/v2.0.0) · [Release notes](docs/release-v2.0.0.md)
+**稳定版 / Stable:** [v2.0.1](https://github.com/stevexin2018/docx-speech-briefing-builder/releases/tag/v2.0.1) · [Release notes](docs/release-v2.0.1.md)
 
-The recommended cached workflow defaults to the native Pandoc Word engine. Existing renderer entry points keep their compatibility defaults; select `--engine pandoc` explicitly there.
+All Word CLI and Python entry points now default to the native Pandoc engine. The cached workflow is recommended for automatic records. Use `--engine legacy` only when compatibility rendering is explicitly needed.
 
 > 🚀 **Universal AI Agent Skill & Python Tool**: Automated Markdown to elegant Word (`.docx`) reports with LaTeX/Unicode math, structured tables, header/footer branding, and natural-speed speech audio (`.mp3`) with concurrent TTS synthesis.
 

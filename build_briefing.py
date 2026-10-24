@@ -14,7 +14,7 @@ class BriefingBuildError(RuntimeError):
         super().__init__("；".join(f"{name}: {message}" for name, message in report["errors"].items()))
 
 
-def build_docx_worker(input_md, output_docx, title, topic_id, *, engine="legacy", pandoc_path=None,
+def build_docx_worker(input_md, output_docx, title, topic_id, *, engine="pandoc", pandoc_path=None,
                        reference_doc=None, diagnostics_path=None, source_name=None):
     from render_docx import create_docx_document
     started = time.time()
@@ -40,7 +40,7 @@ def build_audio_worker(input_md, output_mp3, rate, voice, proxy):
 
 def build_briefing_concurrent(input_md, output_docx=None, output_mp3=None, title=None,
                               topic_id="Technology", rate="+0%", voice="zh-CN-XiaoxiaoNeural", proxy=None, *,
-                              engine="legacy", pandoc_path=None, reference_doc=None, diagnostics_path=None):
+                              engine="pandoc", pandoc_path=None, reference_doc=None, diagnostics_path=None):
     if not output_docx and not output_mp3:
         raise ValueError("至少指定 Word 或 MP3 中的一种输出。")
     if diagnostics_path and not output_docx:
@@ -97,7 +97,7 @@ def main(argv=None):
     parser.add_argument("--rate", default="+0%", help="Speech rate (default +0%%)")
     parser.add_argument("--voice", default="zh-CN-XiaoxiaoNeural", help="TTS voice")
     parser.add_argument("--proxy", help="TTS proxy URL")
-    parser.add_argument("--engine", choices=("legacy", "pandoc"), default="legacy", help="Word engine (default: legacy)")
+    parser.add_argument("--engine", choices=("legacy", "pandoc"), default="pandoc", help="Word engine (default: pandoc; legacy is explicit opt-in)")
     parser.add_argument("--pandoc", help="Pandoc executable (or set PANDOC_PATH)")
     parser.add_argument("--reference-doc", help="Word style reference (.docx)")
     parser.add_argument("--diagnostics", help="Optional structured Word diagnostics JSON")

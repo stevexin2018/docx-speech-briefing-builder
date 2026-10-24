@@ -18,7 +18,7 @@ class BuildSelectionTests(unittest.TestCase):
     def test_word_only_does_not_call_audio(self):
         with patch("build_briefing.build_audio_worker", side_effect=AssertionError("audio was called")):
             output = self.source.with_suffix(".docx")
-            report = build_briefing_concurrent(str(self.source), str(output))
+            report = build_briefing_concurrent(str(self.source), str(output), engine="legacy")
         self.assertTrue(output.exists())
         self.assertIsNone(report["audio_cost"])
 
@@ -33,7 +33,7 @@ class BuildSelectionTests(unittest.TestCase):
         output = self.source.with_suffix(".docx")
         with patch("build_briefing.build_audio_worker", side_effect=RuntimeError("TTS unavailable")):
             with self.assertRaises(BriefingBuildError) as raised:
-                build_briefing_concurrent(str(self.source), str(output), str(self.source.with_suffix(".mp3")))
+                build_briefing_concurrent(str(self.source), str(output), str(self.source.with_suffix(".mp3")), engine="legacy")
         self.assertTrue(output.exists())
         self.assertEqual(raised.exception.report["outputs"]["docx"]["status"], "success")
         self.assertEqual(raised.exception.report["outputs"]["audio"]["status"], "failed")

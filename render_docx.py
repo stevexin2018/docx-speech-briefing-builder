@@ -225,7 +225,7 @@ def clean_inline_text(text):
 
 
 def create_docx_document(topic_title, chapter_id, markdown_content, output_path, theme_color="0F4C81", *,
-                         engine="legacy", pandoc_path=None, reference_doc=None, diagnostics_path=None,
+                         engine="pandoc", pandoc_path=None, reference_doc=None, diagnostics_path=None,
                          source_name="<markdown>"):
     if engine == "pandoc":
         from briefing_v2 import render_markdown
@@ -504,7 +504,7 @@ if __name__ == "__main__":
     parser.add_argument("--topic-id", default="BPVC", help="Topic ID")
     parser.add_argument("--input", required=True, help="Input markdown path")
     parser.add_argument("--output", required=True, help="Output docx path")
-    parser.add_argument("--engine", choices=("legacy", "pandoc"), default="legacy", help="Word engine (default: legacy)")
+    parser.add_argument("--engine", choices=("legacy", "pandoc"), default="pandoc", help="Word engine (default: pandoc; legacy is explicit opt-in)")
     parser.add_argument("--pandoc", help="Pandoc executable path (or set PANDOC_PATH)")
     parser.add_argument("--reference-doc", help="Custom Word style reference (.docx)")
     parser.add_argument("--diagnostics", help="Write structured conversion diagnostics to this JSON path")

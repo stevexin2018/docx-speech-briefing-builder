@@ -1,12 +1,12 @@
 ---
 name: docx-speech-briefing-builder
 metadata:
-  version: "2.0.0"
+  version: "2.0.1"
   updated: "2026-10-24"
 description: 将 Markdown 深度工程报告自动转换为排版 Word 文档 (.docx) 与正常语速高品质语音讲解音频 (.mp3)。核心引擎已完全独立解耦至独立仓库 (https://github.com/stevexin2018/docx-speech-briefing-builder)。
 ---
 
-# Word & Normal Speed Speech Briefing Builder (v2.0.0)
+# Word & Normal Speed Speech Briefing Builder (v2.0.1)
 
 ## 📌 概述
 本 Skill 作为 OpenClaw 技能协议入口，底层直接连接 **`docx-speech-briefing-builder` 独立组件库**（独立 Git 仓库：`https://github.com/stevexin2018/docx-speech-briefing-builder`）。
@@ -21,7 +21,7 @@ description: 将 Markdown 深度工程报告自动转换为排版 Word 文档 (.
 
 ## v2 正式版：原生 Word 与结构化语音
 
-用户要求 v2、新引擎或带缓存和诊断记录的报告时，使用 `trial_briefing.py`（文件名为兼容旧调用保留）。此入口默认 `pandoc`，支持仅 Word、仅 MP3 或两者；只生成用户要求的格式。Windows 和 ARM 共用相同实现。
+用户明确要求生成 Word 或语音时，默认使用 `trial_briefing.py`（文件名为兼容旧调用保留）。此入口默认 `pandoc`，支持仅 Word、仅 MP3 或两者；只生成用户要求的格式。Windows 和 ARM 共用相同实现。
 
 ```bash
 python trial_briefing.py --input report.md --docx report.docx --mp3 report.mp3 --title "工程技术报告"
@@ -29,9 +29,9 @@ python trial_briefing.py --input report.md --docx report.docx --mp3 report.mp3 -
 
 试用入口自动保存 `.assets.json` 缓存清单，以及输出旁 `.briefing` 目录内每次调用的 JSON 和 Word 诊断；缓存命中、失败也记录。查看 `engine`、`status`、`rebuilt`、`reused`、`review_required`，不要把旧引擎缓存当成新引擎验证。诊断文件默认不作为附件交付；不支持的公式不得静默回退旧引擎。录音缓存独立于 Word 引擎和模板，改变语速、音色或语音清洗逻辑时才失效。试用音频需 ffprobe 校验。
 
-ARM 原有 `openclaw_assets.py` 附件入口可加 `--trial`（默认新引擎），或明确指定 `--engine pandoc`；未指定时沿用兼容入口。试用操作不自动发送、发布或更新软件。详细缓存规则、记录字段和两端调用见 [docs/trial-workflow.md](docs/trial-workflow.md)。
+ARM 的 `openclaw_assets.py` 附件入口默认 Pandoc，无需 `--trial`；旧参数保留兼容。只有明确指定 `--engine legacy` 才选择兼容引擎。普通构建不自动发送、发布或更新软件。详细缓存规则、记录字段和两端调用见 [docs/trial-workflow.md](docs/trial-workflow.md)。
 
-v2.0.0 已转正式版。为兼容既有调用，原有 `build_briefing.py`、`render_docx.py` 默认仍使用 `legacy`；推荐入口 `trial_briefing.py` 默认 `pandoc`。用户明确需要 Word 或音频时，只传 `--docx`、只传 `--mp3`，或同时传入两者。
+自 v2.0.1 起，`build_briefing.py`、`render_docx.py` 的 CLI/Python API 及 `trial_briefing.py` 全部默认 `pandoc`。普通调用无需注明“使用v2”，缺少依赖或公式不支持时明确报错，不回退旧引擎。用户明确需要 Word 或音频时，只传 `--docx`、只传 `--mp3`，或同时传入两者。
 
 正式版先解析显式数学结构再清洗正文，保留分式边界、正负号、上下标、根号和常用函数；未知数学语音结构报错并保留已有 MP3。标准号、版次、型号并列及孔数尺寸优先按标识处理。复杂公式须标注数学定界符；代码保持字面含义。输出统一约束表格行不拆页、表头与数据同行、公式引言与公式同页，自定义模板同样生效。
 
@@ -52,7 +52,7 @@ python build_briefing.py --input report.md --docx report.docx --engine pandoc --
 ## 🛠️ 独立仓库架构与核心文件
 
 若本机存在 `references/host-workflow.md`，另读该文件中的本机入口、缓存与附件约定；当前版本和引擎能力以本文件及 `version.py` 为准。发布、发送等操作仍需用户在当前任务中授权。
-若存在 `references/codex-shared-usage.md`，读取其中 Windows 的 Python 路径、试用调用及交付目录约定；用户当前指定的位置优先。
+若存在 `references/codex-shared-usage.md`，读取其中 Windows 的 Python 路径、默认缓存调用及交付目录约定；用户当前指定的位置优先。
 
 独立仓库：`https://github.com/stevexin2018/docx-speech-briefing-builder`
 - `version.py`：统一版本元数据定义

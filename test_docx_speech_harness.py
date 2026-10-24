@@ -214,7 +214,7 @@ def test_speech_cleaning():
 
 def test_docx_rendering():
     out_docx = os.path.join(tempfile.gettempdir(), "test_harness_output.docx")
-    create_docx_document("UG-27 圆筒壁厚分析", "UG-27", SAMPLE_MARKDOWN, out_docx)
+    create_docx_document("UG-27 圆筒壁厚分析", "UG-27", SAMPLE_MARKDOWN, out_docx, engine="legacy")
     doc = docx.Document(out_docx)
     
     print("\n--- [Word 渲染结果段落验证] ---")

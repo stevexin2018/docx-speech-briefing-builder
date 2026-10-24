@@ -1,3 +1,17 @@
+## [2.0.1] - 2026-10-24
+
+- Make Pandoc the default for direct Word rendering, concurrent builds and Python
+  worker APIs. Existing callers receive native v2 Word without extra flags;
+  compatibility rendering remains available through explicit engine selection.
+- Document the host migration contract: scheduled callers use the shared cached
+  builder, preserve delivery receipts and separate Word/audio phases, and
+  validate current fingerprints for unsent assets rather than adopting readable
+  legacy files. Host adapters are deployed separately from the portable library.
+- Add integration coverage for every unqualified Word entry, retained explicit
+  legacy rendering, and failure preservation when Pandoc is unavailable.
+- Preserve the published v2.0.0 tag and record this default-policy correction as
+  a patch release.
+
 ## [2.0.0] - 2026-10-24
 
 - Promote the native Word/cached workflow to stable; preserve existing renderer

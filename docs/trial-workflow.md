@@ -3,7 +3,8 @@
 Use this workflow for stable v2 builds and real-report regression. The filename
 `trial_briefing.py` is retained for existing integrations. It
 does not send attachments, publish content, install software or update code.
-Existing `build_briefing.py` and `render_docx.py` retain their legacy defaults.
+All Word CLI/Python entries default to Pandoc as of 2.0.1. Legacy rendering
+requires an explicit engine selection.
 
 ## One portable entry
 
@@ -33,11 +34,11 @@ requested destination; the library does not hard-code a machine directory.
 On ARM, the existing host-owned OpenClaw attachment shim supports:
 
 ```bash
-python3 /root/.openclaw/skills/docx-speech-briefing-builder/openclaw_assets.py --input /absolute/report.md --title '主题' --out-dir /absolute/media --trial
+python3 /root/.openclaw/skills/docx-speech-briefing-builder/openclaw_assets.py --input /absolute/report.md --title '主题' --out-dir /absolute/media
 ```
 
 It also accepts `--engine pandoc`, `--pandoc`, `--reference-doc` and
-`--record-dir`. Without trial/engine selection it keeps the legacy default.
+`--record-dir`. Its migrated default is Pandoc without any trial/engine flag.
 `--engine` takes precedence over `--trial` when both are provided. Existing
 archiving and attachment formatting remain host-owned; `--no-archive` is used
 for isolated smoke tests. These host-specific adapters are not bundled in the
@@ -109,5 +110,5 @@ automatically included as delivered attachments.
 
 `briefing_workflow.build_cached_briefing` returns the run report and raises
 `CachedBuildError(report)` on a failed required build. Its default is Pandoc;
-compatibility adapters explicitly pass `engine='legacy'`. Existing core renderer
+compatibility rendering is available through explicit `engine='legacy'`. Existing core renderer
 APIs remain available for callers that do not want caching or automatic records.

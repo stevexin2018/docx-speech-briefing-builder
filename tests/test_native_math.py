@@ -29,7 +29,7 @@ $$\tau_c=\sqrt{\left(\frac{V}{A_w}\right)^2+\left(\frac{M_v}{Z_w}\right)^2}$$
 | 温度 | 20 ℃ |
 '''
         with tempfile.TemporaryDirectory() as d:
-            p=Path(d)/'原生公式.docx'; create_docx_document('原生公式','QA',md,str(p))
+            p=Path(d)/'原生公式.docx'; create_docx_document('原生公式','QA',md,str(p),engine='legacy')
             with zipfile.ZipFile(p) as z:
                 for name in z.namelist():
                     if name.endswith('.xml'): etree.fromstring(z.read(name))

@@ -2,8 +2,9 @@
 
 The Word engine turns Markdown into editable Word objects through Pandoc's
 document tree. The recommended cached entry, `trial_briefing.py`, defaults to
-Pandoc. Existing renderer entry points retain their legacy defaults for API
-compatibility. Speech now parses marked mathematics before prose cleanup.
+Pandoc. Since 2.0.1 the direct renderer and concurrent builder also default to
+Pandoc, for CLI and Python calls. Compatibility rendering requires an explicit
+`engine="legacy"`. Speech parses marked mathematics before prose cleanup.
 
 ## Runtime and commands
 
@@ -28,8 +29,8 @@ python build_briefing.py --input report.md --mp3 report.mp3
 python render_docx.py --input report.md --output report.docx --engine pandoc --reference-doc reference.docx
 ```
 
-Use `--engine legacy`, or omit the engine option, for the existing rendering
-behavior. Pandoc-specific options require `--engine pandoc`. Each CLI reports the
+Omitting engine selection uses Pandoc. Use `--engine legacy` explicitly for
+compatibility behavior. Pandoc-specific options cannot accompany `--engine legacy`. Each CLI reports the
 same version from `version.py`.
 
 ## Content contract

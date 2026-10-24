@@ -45,7 +45,7 @@ class QuantityTests(unittest.TestCase):
     def test_document(self):
         with tempfile.TemporaryDirectory() as directory:
             output = str(Path(directory) / 'quantities.docx')
-            create_docx_document('计量验证', 'QA', '面积 21,120 mm2\n\n| 项目 | 数值 |\n| --- | --- |\n| 容积 | 10,mm3 |', output)
+            create_docx_document('计量验证', 'QA', '面积 21,120 mm2\n\n| 项目 | 数值 |\n| --- | --- |\n| 容积 | 10,mm3 |', output, engine='legacy')
             document = docx.Document(output)
             self.assertTrue(any('21,120 mm²' in p.text for p in document.paragraphs))
             self.assertTrue(any('10 mm³' in c.text for t in document.tables for r in t.rows for c in r.cells))
