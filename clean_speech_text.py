@@ -17,6 +17,7 @@ import re
 import os
 import sys
 from engineering_text import normalize_quantities, cardinal_cn
+from speech_structure import protect_structure
 
 _BS = '\\\\'
 
@@ -113,6 +114,8 @@ def clean_speech_text(text: str) -> str:
     """
     if not text:
         return ""
+
+    text, restore_structure = protect_structure(text, convert_path_to_speech)
 
     # 0. 预先处理 HTML/XML 标签、尖括号 URL、流程箭头、HTML 实体、LaTeX 范围波浪号与细空格
     # 0.1 尖括号 URL 链接 (如 <https://example.com> 或 <http://...>) 消除
@@ -602,7 +605,7 @@ def clean_speech_text(text: str) -> str:
     text = re.sub(r'^[，。！？；：、\s]+', '', text)
     text = re.sub(r'[，。！？；：、\s]+$', '。', text)
 
-    return text.strip()
+    return restore_structure(text.strip())
 
 def split_text_chunks(text: str, max_chars: int = 1000) -> list:
     """

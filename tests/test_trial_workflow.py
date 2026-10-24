@@ -35,6 +35,29 @@ class TrialFixture:
 
 
 class TrialTests(TrialFixture, unittest.TestCase):
+    def test_unsupported_speech_math_preserves_audio_and_records_failure_before_tts(self):
+        self.source.write_text(r'$$x=\notARealCommand{a}$$', encoding='utf-8')
+        self.audio.write_bytes(b'previous-audio')
+        with patch('clean_speech_text.generate_speech_audio') as synthesize:
+            with self.assertRaises(workflow.CachedBuildError) as caught:
+                workflow.build_cached_briefing(self.source, mp3=self.audio)
+        synthesize.assert_not_called()
+        self.assertEqual(self.audio.read_bytes(), b'previous-audio')
+        report = caught.exception.report
+        self.assertEqual(report['acceptance']['technical_build'], 'failed')
+        self.assertIn('UNSUPPORTED_SPEECH_MATH', [d['code'] for d in report['diagnostics']])
+
+    def test_success_does_not_claim_visual_listening_or_engineering_acceptance(self):
+        report = self.build()
+        self.assertEqual(report['status'], 'success')
+        self.assertTrue(report['build_contract_passed'])
+        self.assertTrue(report['review_required'])
+        self.assertTrue(report['manual_review_required'])
+        self.assertFalse(report['fully_accepted'])
+        self.assertEqual(report['acceptance']['visual'], 'not_performed')
+        self.assertEqual(report['acceptance']['listening'], 'not_requested')
+        self.assertEqual(report['acceptance']['engineering'], 'not_assessed')
+
     def test_cache_hit_has_a_new_record_and_restored_diagnostics(self):
         first = self.build()
         timestamp = self.word.stat().st_mtime_ns

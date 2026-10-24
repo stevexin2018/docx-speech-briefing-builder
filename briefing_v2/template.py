@@ -1,4 +1,5 @@
 """Word styles and minimal table enhancements, separate from content conversion."""
+import re
 from docx import Document
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
@@ -44,6 +45,16 @@ def enhance_document(path, title=None, topic_id=None, default_template=True, add
         properties = table.rows[0]._tr.get_or_add_trPr()
         if properties.find(qn("w:tblHeader")) is None:
             properties.append(OxmlElement("w:tblHeader"))
+        for row in table.rows:
+            tr_properties = row._tr.get_or_add_trPr()
+            if tr_properties.find(qn("w:cantSplit")) is None:
+                tr_properties.append(OxmlElement("w:cantSplit"))
+        # Repeated headings must travel with a data row, not stand alone at the
+        # foot of the preceding page. Do not chain the whole multi-page table.
+        for cell in table.rows[0].cells:
+            for paragraph in cell.paragraphs:
+                paragraph.paragraph_format.keep_with_next = True
+                paragraph.paragraph_format.keep_together = True
         if default_template:
             borders = OxmlElement("w:tblBorders")
             for side in ("top", "left", "bottom", "right", "insideH", "insideV"):
@@ -52,4 +63,28 @@ def enhance_document(path, title=None, topic_id=None, default_template=True, add
                     edge.set(qn(f"w:{key}"), value)
                 borders.append(edge)
             table._tbl.tblPr.append(borders)
+    # Apply pagination to the output, including custom references. A fix to one
+    # trial's template must not be required by every subsequent report.
+    def formula(element):
+        if element.xpath('.//m:oMath'):
+            return True
+        if element.tag != qn('w:p'):
+            return False
+        value = ''.join(element.xpath('.//w:t/text()')).strip()
+        return (len(value) < 150 and re.match(r'^[A-Za-zα-ωΑ-Ω][\w]*\s*[=≈]', value)
+                and re.search(r'[·⋅×/^()]', value))
+
+    body = list(document.element.body)
+    for index, element in enumerate(body):
+        if element.tag != qn("w:p"):
+            continue
+        following = body[index + 1] if index + 1 < len(body) else None
+        is_math = formula(element)
+        next_math = following is not None and formula(following)
+        if is_math or next_math:
+            from docx.text.paragraph import Paragraph
+            paragraph = Paragraph(element, document._body)
+            paragraph.paragraph_format.keep_together = True
+            if next_math:
+                paragraph.paragraph_format.keep_with_next = True
     document.save(path)

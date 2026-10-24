@@ -1,12 +1,12 @@
 ---
 name: docx-speech-briefing-builder
 metadata:
-  version: "2.0.0a2"
-  updated: "2026-10-23"
+  version: "2.0.0"
+  updated: "2026-10-24"
 description: 将 Markdown 深度工程报告自动转换为排版 Word 文档 (.docx) 与正常语速高品质语音讲解音频 (.mp3)。核心引擎已完全独立解耦至独立仓库 (https://github.com/stevexin2018/docx-speech-briefing-builder)。
 ---
 
-# Word & Normal Speed Speech Briefing Builder (v2.0.0a2)
+# Word & Normal Speed Speech Briefing Builder (v2.0.0)
 
 ## 📌 概述
 本 Skill 作为 OpenClaw 技能协议入口，底层直接连接 **`docx-speech-briefing-builder` 独立组件库**（独立 Git 仓库：`https://github.com/stevexin2018/docx-speech-briefing-builder`）。
@@ -19,9 +19,9 @@ description: 将 Markdown 深度工程报告自动转换为排版 Word 文档 (.
 
 路径朗读约定：Windows 文件夹、文件与注册表路径中的反斜杠 `\` 默认转换为中文逗号，让 TTS 自然短暂停顿，不逐层读“反斜杠”“杠”或“backslash”。例如 `D:\项目\报告` 读作“D 盘，项目，报告”；UNC 路径以“网络共享”开头，文件扩展名仍读“点”。此规则仅作用于语音清洗，Word 中保留原始路径，LaTeX 命令沿用原有处理；需要说明字符本身时，在讲解稿中直接写“反斜杠”。
 
-## v2 原生 Word 引擎试用
+## v2 正式版：原生 Word 与结构化语音
 
-用户要求 v2 试用、新引擎或带缓存和诊断记录的报告时，使用 `trial_briefing.py`。此入口默认 `pandoc`，支持仅 Word、仅 MP3 或两者；只生成用户要求的格式。Windows 和 ARM 共用相同实现。
+用户要求 v2、新引擎或带缓存和诊断记录的报告时，使用 `trial_briefing.py`（文件名为兼容旧调用保留）。此入口默认 `pandoc`，支持仅 Word、仅 MP3 或两者；只生成用户要求的格式。Windows 和 ARM 共用相同实现。
 
 ```bash
 python trial_briefing.py --input report.md --docx report.docx --mp3 report.mp3 --title "工程技术报告"
@@ -31,7 +31,11 @@ python trial_briefing.py --input report.md --docx report.docx --mp3 report.mp3 -
 
 ARM 原有 `openclaw_assets.py` 附件入口可加 `--trial`（默认新引擎），或明确指定 `--engine pandoc`；未指定时沿用兼容入口。试用操作不自动发送、发布或更新软件。详细缓存规则、记录字段和两端调用见 [docs/trial-workflow.md](docs/trial-workflow.md)。
 
-当前为 alpha，原有 `build_briefing.py`、`render_docx.py` 默认仍使用兼容引擎 `legacy`；专用试用入口默认 `pandoc`。用户明确需要 Word 或音频时，统一入口支持只传 `--docx`、只传 `--mp3`，或同时传入两者。
+v2.0.0 已转正式版。为兼容既有调用，原有 `build_briefing.py`、`render_docx.py` 默认仍使用 `legacy`；推荐入口 `trial_briefing.py` 默认 `pandoc`。用户明确需要 Word 或音频时，只传 `--docx`、只传 `--mp3`，或同时传入两者。
+
+正式版先解析显式数学结构再清洗正文，保留分式边界、正负号、上下标、根号和常用函数；未知数学语音结构报错并保留已有 MP3。标准号、版次、型号并列及孔数尺寸优先按标识处理。复杂公式须标注数学定界符；代码保持字面含义。输出统一约束表格行不拆页、表头与数据同行、公式引言与公式同页，自定义模板同样生效。
+
+记录 schema 2：`build_contract_passed` 仅表示技术构建通过，`ready_for_delivery` 为兼容字段。`review_required=true`、`manual_review_required=true` 和 `fully_accepted=false` 如实保留人工验收状态；`acceptance.visual`、`listening` 不自动标成已完成，工程状态为 `not_assessed`。不得将 `status=success` 当成逐页验收、语音试听或设备安全放行。
 
 启用新引擎时使用 `--engine pandoc`，需要 Pandoc 3.12.1 或更新版本；查找顺序为 `--pandoc`、`PANDOC_PATH`、本机手动安装的 `.runtime/pandoc/pandoc.exe`（Windows）或 `.runtime/pandoc/pandoc`（Linux）、PATH。运行目录不入 Git，也不自动下载程序。不要将机器专属安装路径写入共享代码。示例：
 
@@ -63,8 +67,8 @@ python build_briefing.py --input report.md --docx report.docx --engine pandoc --
 ## 🚀 快速使用 (CLI)
 
 ```bash
-# 【推荐】方式 1：一步直达一体化并发构建（Word + 正常语速音频完全并发）
-python build_briefing.py \
+# 【推荐】方式 1：v2 缓存构建与逐次验收记录
+python trial_briefing.py \
     --input "/path/to/report.md" \
     --docx "/path/to/output.docx" \
     --mp3 "/path/to/output.mp3" \
@@ -74,6 +78,7 @@ python build_briefing.py \
 
 # 方式 2：单独调用 Word 排版
 python render_docx.py \
+    --engine pandoc \
     --title "UG-27 圆筒壁厚分析" \
     --topic-id "UG-27" \
     --input "/path/to/report.md" \

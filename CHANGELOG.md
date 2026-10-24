@@ -1,3 +1,19 @@
+## [2.0.0] - 2026-10-24
+
+- Promote the native Word/cached workflow to stable; preserve existing renderer
+  defaults and the cached entry filename for integration compatibility.
+- Parse explicit speech mathematics before prose normalization, retaining
+  complete fraction boundaries, signs, powers, scripts, roots and common
+  functions. Unsupported structures fail clearly and preserve existing audio.
+- Protect standards/edition years, model alternatives and hole dimensions from
+  arithmetic cleanup. Retain commas around dimension identifiers such as L=2000.
+- Apply row non-splitting, header keep-with-data, and formula-introduction
+  pagination guards to output documents, including custom references.
+- Add structured speech/dependency fingerprints to audio cache keys and schema 2
+  acceptance fields separating technical success from outstanding manual review.
+- Add minimal public regressions for defects found in three private engineering
+  reports. Private fixtures and rendered/audio artifacts remain outside Git.
+
 ## [2.0.0a2] - 2026-10-23 (prerelease)
 
 - Add a dedicated Pandoc trial CLI with content/configuration caches and an

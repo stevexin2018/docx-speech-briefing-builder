@@ -1,8 +1,9 @@
-# v2 structured Word engine alpha
+# v2 structured Word and speech engines
 
-This opt-in engine turns Markdown into editable Word objects through Pandoc's
-document tree. The production-compatible renderer remains the default during the
-alpha. The TTS engine retains its existing pronunciation rules.
+The Word engine turns Markdown into editable Word objects through Pandoc's
+document tree. The recommended cached entry, `trial_briefing.py`, defaults to
+Pandoc. Existing renderer entry points retain their legacy defaults for API
+compatibility. Speech now parses marked mathematics before prose cleanup.
 
 ## Runtime and commands
 
@@ -53,7 +54,7 @@ same version from `version.py`.
   warning; they are not treated as a fully identified equation. Other unmarked
   LaTeX is rejected rather than silently removed.
 - Equation labels/references and macro definitions (`\label`, `\tag`, `\ref`,
-  `\newcommand`, etc.) are outside this alpha. Unknown math commands are errors.
+  `\newcommand`, etc.) are outside the supported scope. Unknown math commands are errors.
   Math-like code is kept literal and may receive an informational review hint.
 
 ## Diagnostics and publication
@@ -132,10 +133,34 @@ paragraph spacing. Tables receive light borders and repeated headers. A custom
 An existing level-one source heading is retained without adding a duplicate title.
 Otherwise an explicitly provided title becomes a Word Title paragraph.
 
-The engine checks document structure, not final pagination. The alpha still
-requires Word rendering and page review for formal delivery. Automatic equation
-numbering, cross-reference conventions, broad macro support, and final template
-acceptance remain later work.
+The output applies row non-splitting, repeated headers kept with data, and formula
+introductions kept with their equations, including with custom references. Rows
+taller than a page and unusual templates still need client review. The engine
+checks document structure; final delivery requires rendering and page review in
+the target client. Automatic equation numbering, cross-reference conventions,
+and broad macro support remain outside the supported scope.
+
+## Speech structure and acceptance
+
+Marked TeX is parsed through MathML before general punctuation/range/unit rules.
+Supported structures include fractions, signs, scripts, roots, common functions,
+matrices, and limits. Speech names fraction and script boundaries explicitly;
+it does not prove an engineering formula correct. Unknown operators, commands,
+or structures raise `SpeechMathError`; the cached workflow records
+`UNSUPPORTED_SPEECH_MATH` and retains any previous MP3. Word and speech support
+are separate: a formula that renders in Word may still require an explicit
+spoken rewrite before audio can be built.
+
+Code and paths are protected. Unambiguous standalone plain arithmetic is handled
+conservatively; write complex formulas with math delimiters. Standard edition
+years and alternative standards/models are identifiers, and `2-24×64` is a hole
+count and dimension rather than a range. `L=2000` remains an identifier and does
+not consume an adjacent comma as a litre unit.
+
+Run schema 2 separates technical build success from manual acceptance. Visual
+review and listening remain `not_performed` when requested outputs exist;
+engineering review remains `not_assessed`. `fully_accepted` stays false until an
+external acceptance process is completed. See the cached workflow guide.
 
 Run the maintained tests with Pandoc available:
 

@@ -21,7 +21,11 @@ RE_OTHER = re.compile(r'(?<![A-Za-z_])(' + OTHER_UNITS + r')' + POWER_CARET + r'
 
 def normalize_quantities(text):
     # 清理数字与单位间多余的逗号：如 10, mm3 -> 10 mm3
-    all_units = AREA_VOL_UNITS + r'|m|' + OTHER_UNITS
+    # Complete unit tokens only: L=2000, L115 and L2 are identifiers.
+    length_power = r'(?:\^\{[234]\}|\^[234]|[234²³⁴])?'
+    explicit_power = r'(?:\^\{[234]\}|\^[234]|[²³⁴])?'
+    all_units = (r'(?:(?:' + AREA_VOL_UNITS + r'|m)' + length_power +
+                 r'|(?:' + OTHER_UNITS + ')' + explicit_power + r')(?![A-Za-z0-9_=])(?![ \t]*=)')
     text = re.sub(r'(?<=\d)[ 	]*[,，][ 	]*(?=(?:' + all_units + r')(?![A-Za-z_]))', ' ', text)
 
     # 1. 面积体积度量单位

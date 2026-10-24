@@ -1,22 +1,22 @@
 # docx-speech-briefing-builder
 
-**最新试用版 / Preview:** [v2.0.0a2 — 原生 Word 引擎 Alpha](https://github.com/stevexin2018/docx-speech-briefing-builder/releases/tag/v2.0.0a2) · **稳定版 / Stable:** [v1.5.4](https://github.com/stevexin2018/docx-speech-briefing-builder/releases/tag/v1.5.4)
+**稳定版 / Stable:** [v2.0.0](https://github.com/stevexin2018/docx-speech-briefing-builder/releases/tag/v2.0.0) · [Release notes](docs/release-v2.0.0.md)
 
-GitHub's sidebar `Latest` badge refers to the stable release. The v2 alpha is available from the preview link above; enable its Word engine with `--engine pandoc`.
+The recommended cached workflow defaults to the native Pandoc Word engine. Existing renderer entry points keep their compatibility defaults; select `--engine pandoc` explicitly there.
 
 > 🚀 **Universal AI Agent Skill & Python Tool**: Automated Markdown to elegant Word (`.docx`) reports with LaTeX/Unicode math, structured tables, header/footer branding, and natural-speed speech audio (`.mp3`) with concurrent TTS synthesis.
 
 ---
 
-## v2.0 alpha structured Word engine
+## v2.0 structured Word and speech engine
 
-The opt-in Pandoc engine converts typed Markdown to editable Word math and heading styles. It adds protected engineering-unit normalization, repeating table headers, source diagnostics, and staged output validation. The default remains `legacy` during the alpha.
+The Pandoc engine converts typed Markdown to editable Word math and heading styles. It adds protected engineering-unit normalization, repeating table headers, source diagnostics, and staged output validation. Output pagination keeps table rows intact, headers with data, and formula introductions with their formulas, including with custom references.
 
-For daily v2 trials, use `python trial_briefing.py --input report.md --docx report.docx`.
+For v2 builds, use `python trial_briefing.py --input report.md --docx report.docx`.
 This dedicated entry defaults to Pandoc and adds separate Word/audio caches and a
 JSON record for every attempt, including cache hits and failures. Add `--mp3` only
 when audio is requested; cached audio validation requires `ffprobe` on PATH.
-See [the trial workflow guide](docs/trial-workflow.md) for Windows/ARM usage and record fields.
+The filename is retained for compatibility. See [the cached workflow guide](docs/trial-workflow.md) for Windows/ARM usage and record fields. A successful build does not mark visual, listening, or engineering acceptance complete.
 
 Install [Pandoc 3.12.1 or newer](https://pandoc.org/installing.html). Lookup order is `--pandoc`, `PANDOC_PATH`, a manually installed `.runtime/pandoc/pandoc.exe` (Windows) or `.runtime/pandoc/pandoc` (Linux), then PATH. The optional runtime directory is ignored by Git; binaries are never downloaded implicitly.
 
@@ -26,12 +26,14 @@ python build_briefing.py --input report.md --docx report.docx --engine pandoc --
 
 The same command supports Word only, MP3 only, or both. Audio and Word report success independently; a failed audio request does not discard a successful Word output. Unknown or unconverted formulas fail the new Word build without replacing an existing document. Diagnostics JSON is created only when requested.
 
-See [the v2 engine guide](docs/v2-engine.md) for source conventions, diagnostics, custom Word references, and regression tests. Full LaTeX packages, automatic equation numbering, and interpretation of math written as code are outside this alpha's scope.
+Speech parses marked mathematics before prose cleanup, preserving fraction boundaries, signs, powers, roots and common functions. Standard editions, hole counts and model alternatives are protected from arithmetic rules. Unsupported explicit math fails audio construction while retaining prior audio.
+
+See [the v2 engine guide](docs/v2-engine.md) for source conventions, diagnostics, custom Word references, and regression tests. Full LaTeX packages, automatic equation numbering, and interpretation of math written as code remain outside the supported scope.
 
 ## 🌟 Features
 
 - 📄 **Professional Word (.docx) Engine**:
-  - Full support for 11-stage LaTeX math formulas $\rightarrow$ Unicode & OMML conversion.
+  - Supported LaTeX formulas become native editable OMML; unsupported syntax is reported.
   - Automatic table rendering with alternating row colors and custom header branding.
   - Robust **ASCII art & line-divider filtering** (eliminates markdown table borders and noisy separator rows).
   - Page margin, header/footer, and hierarchy header styling.
@@ -60,14 +62,16 @@ pip install -r requirements.txt
 - Python 3.10+ (the declared `latex2mathml` dependency requires it)
 - `python-docx`
 - `edge-tts`
+- `latex2mathml` (structured speech mathematics)
+- Pandoc 3.12.1+ for the native Word engine; `ffprobe` for cached MP3 validation
 
 ---
 
 ## 🚀 Quick Usage (CLI & Python API)
 
-### 1. One-Step Concurrent Build (Recommended)
+### 1. Cached Native Build (Recommended)
 ```bash
-python build_briefing.py \
+python trial_briefing.py \
     --input "sample_report.md" \
     --docx "output_report.docx" \
     --mp3 "output_voice.mp3" \
@@ -78,6 +82,7 @@ python build_briefing.py \
 ### 2. Generate Word Document (.docx) Only
 ```bash
 python render_docx.py \
+    --engine pandoc \
     --title "Engineering Calculation Report" \
     --topic-id "CALC-001" \
     --input "sample_report.md" \

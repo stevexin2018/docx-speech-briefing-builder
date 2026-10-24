@@ -1,0 +1,109 @@
+"""Public, minimal reproductions derived from the three private trial reports."""
+import sys
+import tempfile
+import unittest
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from clean_speech_text import clean_speech_text
+from engineering_text import normalize_quantities
+from speech_structure import SpeechMathError, speak_math
+from briefing_v2.engine import find_pandoc, render_markdown
+from docx import Document
+from docx.oxml.ns import qn
+
+try:
+    PANDOC = find_pandoc()
+except FileNotFoundError:
+    PANDOC = None
+
+
+class SpeechStructureTests(unittest.TestCase):
+    def test_fraction_retains_the_complete_denominator_and_minus(self):
+        value = clean_speech_text(r'$$t=\frac{PR}{SE-0.6P}$$')
+        self.assertIn('分子为 P 乘以 R', value)
+        self.assertIn('除以分母 S 乘以 E 减去 零点六 乘以 P，分式结束', value)
+
+    def test_addition_power_and_subscript_survive_the_prose_cleaner(self):
+        value = clean_speech_text(r'$$P_i=P_0+\frac{\rho g h_i}{10^6}$$')
+        self.assertIn('加上', value)
+        self.assertIn('十 的 六 次方', value)
+        self.assertIn('下标 i，下标结束', value)
+        self.assertNotIn('10 6', value)
+
+    def test_nested_fraction_scripts_and_trigonometry(self):
+        for source in [r'$$s_g=\frac{l_{\mathrm{slot}}-d_b}{2}$$',
+                       r'$$\ell=s-\frac{d_1+d_2}{2}$$',
+                       r'$$T=\frac{\varphi m g}{n\cos\beta}$$']:
+            value = clean_speech_text(source)
+            self.assertNotRegex(value, r'\\[A-Za-z]+|\b(?:frac|ell|varphi|cos)\b')
+            self.assertIn('分式结束', value)
+        self.assertIn('减去', clean_speech_text(r'$$\ell=s-\frac{d_1+d_2}{2}$$'))
+        self.assertIn('除以分母 n 乘以 余弦 贝塔', clean_speech_text(r'$$T=\frac{\varphi m g}{n\cos\beta}$$'))
+
+    def test_nested_roots_and_matrix(self):
+        self.assertIn('根号结束', speak_math(r'\sqrt{\frac{a^2}{b^2}}'))
+        matrix = speak_math(r'\begin{bmatrix}1&2\\3&4\end{bmatrix}')
+        self.assertIn('第一行 一，二', matrix)
+        self.assertIn('第二行 三，四', matrix)
+
+    def test_unsupported_math_fails_explicitly(self):
+        with self.assertRaises(SpeechMathError):
+            clean_speech_text(r'$$x=\notARealCommand{a}$$')
+        with self.assertRaises(SpeechMathError):
+            clean_speech_text('$$x=1')
+
+    def test_container_metadata_does_not_become_narration(self):
+        value = clean_speech_text('::: {custom-style="FormulaIntro"}\n完整正文\n:::')
+        self.assertIn('完整正文', value)
+        self.assertNotIn('FormulaIntro', value)
+        self.assertNotIn('custom', value)
+
+    def test_hole_count_and_standard_identifiers(self):
+        self.assertEqual(clean_speech_text('2-24×64'), '2 个 24 乘以 64。')
+        standard = clean_speech_text('JB/T4712.1-2007')
+        self.assertIn('年版 二零零七', standard)
+        self.assertNotIn('除以', standard)
+        self.assertNotIn('至', standard)
+        self.assertIn('连接号 F', clean_speech_text('BⅡ2000-F'))
+        self.assertNotIn('除以', clean_speech_text('BⅡ2000-F / BⅡ2000-S'))
+        self.assertIn('或', clean_speech_text('BⅡ2000-F/S'))
+        self.assertEqual(clean_speech_text('2-Φ24'), '2 个直径 24。')
+        self.assertEqual(clean_speech_text('10-20mm'), '10至20 毫米。')
+
+    def test_identifiers_are_not_litre_units(self):
+        for source in ['∠50×50×6，L=2000，两件', '∠50×50×6，L = 2000，两件', '143237-07，A1/M1与L2～4', 'Φ610/620，t16，L115，Q345R']:
+            self.assertEqual(normalize_quantities(source), source)
+        self.assertEqual(normalize_quantities('10,mm3'), '10 mm³')
+        self.assertEqual(normalize_quantities('10,L'), '10 L')
+
+    def test_paths_and_code_are_not_interpreted_as_equations(self):
+        value = clean_speech_text(r'`C:\项目\报告.docx`')
+        self.assertIn('C 盘，项目，报告 点 docx', value)
+        self.assertNotIn('下标', clean_speech_text('`x_i^2`'))
+        self.assertNotIn('等于', clean_speech_text(r'C:\data\$x$\report.docx'))
+
+
+@unittest.skipUnless(PANDOC, 'Pandoc is required for native Word regression')
+class NativeWordReleaseTests(unittest.TestCase):
+    def test_custom_template_preserves_identifiers_and_gets_pagination_guards(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            reference, output = root / 'reference.docx', root / 'output.docx'
+            Document().save(reference)
+            source = ('# Review\n\n| Parameter | Value |\n|---|---|\n'
+                      '| Length | ∠50×50×6，L=2000，两件 |\n\n'
+                      '> Formula introduction\n\n$$t=\\frac{PR}{SE-0.6P}$$')
+            render_markdown(source, output, reference_doc=reference, pandoc_path=PANDOC)
+            doc = Document(output)
+            self.assertEqual(doc.tables[0].cell(1, 1).text, '∠50×50×6，L=2000，两件')
+            for row in doc.tables[0].rows:
+                self.assertIsNotNone(row._tr.find(qn('w:trPr')).find(qn('w:cantSplit')))
+            self.assertTrue(all(p.paragraph_format.keep_with_next for c in doc.tables[0].rows[0].cells for p in c.paragraphs))
+            intro = next(p for p in doc.paragraphs if p.text == 'Formula introduction')
+            self.assertTrue(intro.paragraph_format.keep_with_next)
+            self.assertTrue(intro.paragraph_format.keep_together)
+
+
+if __name__ == '__main__':
+    unittest.main()

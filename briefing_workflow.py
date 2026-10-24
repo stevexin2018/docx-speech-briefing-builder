@@ -19,9 +19,10 @@ import time
 import uuid
 
 from version import __version__
+from speech_structure import SpeechMathError
 
 CORE = Path(__file__).resolve().parent
-SCHEMA = 1
+SCHEMA = 2
 
 
 class CachedBuildError(RuntimeError):
@@ -149,8 +150,9 @@ def _audio_config(raw, rate, voice):
     from clean_speech_text import clean_speech_text
     cleaned = clean_speech_text(raw)
     return {'cleaned_sha256': hashlib.sha256(cleaned.encode('utf-8')).hexdigest(), 'rate': rate,
-            'voice': voice, 'packages': _packages(['edge-tts']),
-            'components': _components(['clean_speech_text.py', 'unit_verbalizer.py', 'engineering_text.py'])}
+            'voice': voice, 'packages': _packages(['edge-tts', 'latex2mathml']),
+            'components': _components(['clean_speech_text.py', 'speech_structure.py',
+                                       'unit_verbalizer.py', 'engineering_text.py'])}
 
 
 def _diagnostic(code, message, source, severity='error'):
@@ -170,6 +172,8 @@ def _error_report(error, engine, source, output):
             code, message = 'FILE_ACCESS_DENIED', '无法读写文件；请检查占用状态和目录权限，已有文件保留。'
         elif isinstance(error, TimeoutError):
             code, message = 'BUILD_TIMEOUT', '构建超时；请检查网络、上游服务和运行环境后重试。'
+        elif isinstance(error, SpeechMathError):
+            code, message = 'UNSUPPORTED_SPEECH_MATH', str(error)
         elif str(error) == 'Generated asset did not pass validation':
             code, message = 'OUTPUT_VALIDATION_FAILED', '生成的文件未通过格式或内容完整性检查，已有文件保留。'
         elif engine == 'edge-tts':
@@ -243,7 +247,13 @@ def build_cached_briefing(source, docx=None, mp3=None, title=None, topic='Techno
               'word_diagnostics_path': str(word_path) if word_path else None,
               'outputs': {kind: {'path': str(path), 'status': 'not_started', 'cache': 'unavailable'}
                           for kind, path in targets.items()},
-              'diagnostics': [], 'rebuilt': [], 'reused': [], 'ready_for_delivery': False}
+              'diagnostics': [], 'rebuilt': [], 'reused': [], 'ready_for_delivery': False,
+              'build_contract_passed': False, 'fully_accepted': False,
+              'manual_review_required': True, 'review_required': True,
+              'acceptance': {'technical_build': 'not_started',
+                             'visual': 'not_performed' if docx else 'not_requested',
+                             'listening': 'not_performed' if mp3 else 'not_requested',
+                             'engineering': 'not_assessed'}}
     _save_json(record_path, record)
     state = {'schema_version': SCHEMA, 'assets': {}, 'ready_for_delivery': False}
     held = False
@@ -384,10 +394,21 @@ def build_cached_briefing(source, docx=None, mp3=None, title=None, topic='Techno
                             and all(item['source'] == str(source) for item in errors)
                             and not any(item['code'] in {'SOURCE_CHANGED', 'REFERENCE_CHANGED'} for item in errors))
         record['ready_for_delivery'] = not failed and not errors or optional_failure
-        record['review_required'] = any(item['severity'] == 'warning' for item in record['diagnostics'])
+        diagnostic_review = any(item['severity'] == 'warning' for item in record['diagnostics'])
+        record['diagnostic_review_required'] = diagnostic_review
+        record['build_contract_passed'] = bool(record['ready_for_delivery'])
+        record['acceptance'] = {
+            'technical_build': 'passed' if record['ready_for_delivery'] else 'failed',
+            'visual': 'not_performed' if 'docx' in targets else 'not_requested',
+            'listening': 'not_performed' if 'mp3' in targets else 'not_requested',
+            'engineering': 'not_assessed',
+        }
+        record['manual_review_required'] = True
+        record['fully_accepted'] = False
+        record['review_required'] = True
         record['status'] = ('word_only' if optional_failure else
                             'failed' if errors or failed else
-                            'success_with_warnings' if record['review_required'] else 'success')
+                            'success_with_warnings' if diagnostic_review else 'success')
         if optional_failure:
             record.update(delivery_mode='word_only', audio_error='AudioBuildFailed')
             state['assets'].pop('mp3', None)
@@ -401,6 +422,7 @@ def build_cached_briefing(source, docx=None, mp3=None, title=None, topic='Techno
         record['diagnostics'].append(_diagnostic(code, f'流程中止（{type(error).__name__}）；请查看本次记录。', source))
         record['status'] = 'failed'
         record['ready_for_delivery'] = False
+        record['acceptance']['technical_build'] = 'failed'
         if word_path and not word_path.exists():
             try:
                 _save_json(word_path, {'engine': engine, 'status': 'failed', 'source': str(source),

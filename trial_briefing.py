@@ -35,6 +35,10 @@ def main(argv=None):
     except CachedBuildError as error:
         report = error.report
     print(f"engine={report['engine'] or 'audio-only'}; status={report['status']}")
+    if 'acceptance' in report:
+        print(f"build_contract_passed={report['build_contract_passed']}; "
+              f"manual_review_required={report['manual_review_required']}; "
+              f"visual={report['acceptance']['visual']}; listening={report['acceptance']['listening']}")
     for kind, output in report['outputs'].items():
         print(f"{kind}: {output['status']} (cache={output['cache']}): {output['path']}")
     print_diagnostics(report['diagnostics'], ('warning', 'error'))

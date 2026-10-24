@@ -1,6 +1,7 @@
-# v2 daily trial workflow
+# v2 cached build workflow
 
-Use this workflow when collecting real-report evidence for the v2 release. It
+Use this workflow for stable v2 builds and real-report regression. The filename
+`trial_briefing.py` is retained for existing integrations. It
 does not send attachments, publish content, install software or update code.
 Existing `build_briefing.py` and `render_docx.py` retain their legacy defaults.
 
@@ -50,8 +51,9 @@ and its SHA-256. Old/incompatible cache keys cause a rebuild, not a silent reuse
 
 - Word: source, title/topic, selected engine, library version and relevant code,
   Word dependencies, template content, and Pandoc version/binary for v2.
-- MP3: cleaned speech, rate, requested voice, relevant speech code and Edge-TTS
-  version. Word engine, title and template do not invalidate unchanged narration.
+- MP3: cleaned speech, rate, requested voice, relevant speech code (including
+  `speech_structure.py`), Edge-TTS and latex2mathml versions. Word engine, title
+  and template do not invalidate unchanged narration.
 
 A changed reference/Pandoc/core invalidates Word. A changed voice/rate invalidates
 audio. Broken files are rebuilt. Successful branches survive the other branch's
@@ -75,6 +77,8 @@ Run records include:
 - source path/hash, start/end times and per-stage duration;
 - output paths, `built`/`reused`/`failed` state and cache hit/miss;
 - `rebuilt`, `reused`, `diagnostics`, `review_required`, `ready_for_delivery`;
+- schema 2: `build_contract_passed`, `diagnostic_review_required`,
+  `manual_review_required`, `fully_accepted`, and separate `acceptance` states;
 - the manifest and Word-diagnostic paths.
 
 Status is `success`, `success_with_warnings`, `word_only` (explicit optional-audio
@@ -82,6 +86,16 @@ recovery), or `failed`. `ready_for_delivery` means the requested technical build
 contract passed (or optional audio recovery applied); it is not a mathematical
 correctness or Word pagination guarantee. Warnings still require review.
 Legacy records identify that engine; they do not claim the v2 math checks passed.
+
+`build_contract_passed` is the explicit name for that technical result;
+`ready_for_delivery` is retained as a compatibility field. `review_required` is
+true when manual acceptance is pending, even with `status=success`.
+`diagnostic_review_required` identifies compiler warnings separately. The workflow
+sets visual/listening to `not_performed` for requested outputs, or `not_requested`
+when absent, engineering to `not_assessed`, `manual_review_required=true` and
+`fully_accepted=false`. It never invents a client page review, listening result,
+or equipment safety approval. Real listening and engineering checks must be
+recorded separately by the reviewer. A build or cache hit cannot clear them.
 
 Cache hits produce a fresh record and restore original diagnostics, including
 warnings. Source locations refer to the user's input, not a deleted temporary
