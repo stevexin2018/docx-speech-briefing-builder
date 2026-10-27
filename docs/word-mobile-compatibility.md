@@ -4,9 +4,13 @@
 
 The user confirmed that the old-format prompt disappeared, while the equation
 still stretched in Mobile View. Treat compatibility settings as verified for
-this report/device, and the native-equation reflow attempt as failed. Phone OS
-and Word build were not provided with this feedback; do not generalize it to
-every mobile client.
+this report/device, and the native-equation reflow attempt as failed. The user
+reported vivo X200s, Android 16, OriginOS 6 and Microsoft Word
+16.0.20228.20090. Do not generalize this result to every mobile client.
+
+The minimal file-format fix is isolated on `fix/word-modern-format`; it changes
+only the compatibility setting and its diagnostic field. It does not include
+the experimental math defaults or paragraph transformations in this branch.
 
 The layout transformations below remain experimental and must not be merged as
 a proven Mobile View fix. The next local comparison uses a separate reading
