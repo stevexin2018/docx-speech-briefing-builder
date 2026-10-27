@@ -5,6 +5,8 @@ from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.shared import Cm, Pt, RGBColor
 
+from .compatibility import use_modern_word_mode
+
 
 def configure_reference(path):
     document = Document(path)
@@ -31,6 +33,7 @@ def configure_reference(path):
 
 def enhance_document(path, title=None, topic_id=None, default_template=True, add_title=False):
     document = Document(path)
+    compatibility = use_modern_word_mode(document)
     if title:
         document.core_properties.title = title
     if topic_id:
@@ -88,3 +91,4 @@ def enhance_document(path, title=None, topic_id=None, default_template=True, add
             if next_math:
                 paragraph.paragraph_format.keep_with_next = True
     document.save(path)
+    return compatibility

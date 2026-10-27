@@ -1,3 +1,12 @@
+## Unreleased — explicit Word file compatibility
+
+- Write `compatibilityMode=15` for native Word output and include it in Word
+  diagnostics. Preserve mathematical content, paragraph structure, custom
+  references and other compatibility settings.
+- Real-device feedback confirmed that this removes the old-format prompt for
+  the tested document. It does not solve equation stretching in Mobile View;
+  keep that separate rendering issue outside this patch.
+
 ## [2.0.1] - 2026-10-24
 
 - Make Pandoc the default for direct Word rendering, concurrent builds and Python
