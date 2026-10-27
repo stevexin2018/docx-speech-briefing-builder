@@ -1,3 +1,15 @@
+## Unreleased — Word mobile compatibility candidate
+
+- Write explicit modern Word compatibility settings and fill missing math
+  defaults while retaining custom font and wrap settings.
+- Keep standalone display equations in expandable, single-spaced paragraphs;
+  separate adjacent prose and narrowly recognized trailing review labels from
+  the native equation object without rewriting its mathematical expression.
+- Record layout adjustments in Word diagnostics. Desktop/structural checks do
+  not establish mobile-view acceptance; real-device A/B testing is pending.
+- See [mobile compatibility notes](docs/word-mobile-compatibility.md) for the
+  test boundary and rollout criteria. This candidate is not a stable release.
+
 ## [2.0.1] - 2026-10-24
 
 - Make Pandoc the default for direct Word rendering, concurrent builds and Python

@@ -215,7 +215,8 @@ def render_markdown(markdown_content, output_path, *, title=None, topic_id=None,
                     add("DOCX_CONVERSION_FAILED", converted.stderr.decode("utf-8", "replace").strip() or "Word 转换失败。")
                 raise _Abort()
             has_title = any(block.get("t") == "Header" and block["c"][0] == 1 for block in ast["blocks"])
-            enhance_document(staged, title, topic_id, default_template=not reference_doc, add_title=bool(title and not has_title))
+            report["word_layout"] = enhance_document(staged, title, topic_id, default_template=not reference_doc,
+                                                     add_title=bool(title and not has_title))
             metrics = inspect_docx(staged)
             expected_math = analysis["source_counts"].get("Math", 0)
             if metrics["math"] != expected_math:

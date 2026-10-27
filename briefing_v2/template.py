@@ -5,6 +5,8 @@ from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.shared import Cm, Pt, RGBColor
 
+from .word_compatibility import prepare_word_layout
+
 
 def configure_reference(path):
     document = Document(path)
@@ -39,6 +41,7 @@ def enhance_document(path, title=None, topic_id=None, default_template=True, add
         paragraph = document.add_paragraph(title, style="Title")
         document.element.body.remove(paragraph._p)
         document.element.body.insert(0, paragraph._p)
+    layout = prepare_word_layout(document)
     for table in document.tables:
         if not table.rows:
             continue
@@ -88,3 +91,4 @@ def enhance_document(path, title=None, topic_id=None, default_template=True, add
             if next_math:
                 paragraph.paragraph_format.keep_with_next = True
     document.save(path)
+    return layout
