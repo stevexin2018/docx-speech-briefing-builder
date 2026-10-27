@@ -1,12 +1,12 @@
 ---
 name: docx-speech-briefing-builder
 metadata:
-  version: "2.0.1"
-  updated: "2026-10-24"
+  version: "2.0.2"
+  updated: "2026-10-27"
 description: 将 Markdown 深度工程报告自动转换为排版 Word 文档 (.docx) 与正常语速高品质语音讲解音频 (.mp3)。核心引擎已完全独立解耦至独立仓库 (https://github.com/stevexin2018/docx-speech-briefing-builder)。
 ---
 
-# Word & Normal Speed Speech Briefing Builder (v2.0.1)
+# Word & Normal Speed Speech Briefing Builder (v2.0.2)
 
 ## 📌 概述
 本 Skill 作为 OpenClaw 技能协议入口，底层直接连接 **`docx-speech-briefing-builder` 独立组件库**（独立 Git 仓库：`https://github.com/stevexin2018/docx-speech-briefing-builder`）。
@@ -34,6 +34,8 @@ ARM 的 `openclaw_assets.py` 附件入口默认 Pandoc，无需 `--trial`；旧�
 自 v2.0.1 起，`build_briefing.py`、`render_docx.py` 的 CLI/Python API 及 `trial_briefing.py` 全部默认 `pandoc`。普通调用无需注明“使用v2”，缺少依赖或公式不支持时明确报错，不回退旧引擎。用户明确需要 Word 或音频时，只传 `--docx`、只传 `--mp3`，或同时传入两者。
 
 正式版先解析显式数学结构再清洗正文，保留分式边界、正负号、上下标、根号和常用函数；未知数学语音结构报错并保留已有 MP3。标准号、版次、型号并列及孔数尺寸优先按标识处理。复杂公式须标注数学定界符；代码保持字面含义。输出统一约束表格行不拆页、表头与数据同行、公式引言与公式同页，自定义模板同样生效。
+
+v2.0.2 针对带 LaTeX 空格的温度、角度及星号上标补充语音解析；公式以原生可编辑对象输出，现代 Word 兼容模式记录在 Word 诊断中。手机 Word 阅读视图对部分复杂公式可能出现重排异常，可用其他已验证的手机文档阅读器查看。只生成用户要求的一份 Word 和／或音频。
 
 记录 schema 2：`build_contract_passed` 仅表示技术构建通过，`ready_for_delivery` 为兼容字段。`review_required=true`、`manual_review_required=true` 和 `fully_accepted=false` 如实保留人工验收状态；`acceptance.visual`、`listening` 不自动标成已完成，工程状态为 `not_assessed`。不得将 `status=success` 当成逐页验收、语音试听或设备安全放行。
 

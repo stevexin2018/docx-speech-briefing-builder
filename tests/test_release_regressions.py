@@ -19,6 +19,26 @@ except FileNotFoundError:
 
 
 class SpeechStructureTests(unittest.TestCase):
+    def test_angles_temperatures_and_star_superscripts_in_context(self):
+        cases = {
+            r'$45^\circ$': ('四十五 度',),
+            r'$1.5 \times 45^\circ$': ('一点五 乘以 四十五 度',),
+            r'$80\ ^\circ\text{C}$': ('80 摄氏度',),
+            r'$-29\ ^\circ\text{C} \text{ @ } 0.6\text{ MPa}$': ('零下 二十九 摄氏度', '在 零点六 兆帕'),
+            r'$T=20^{\circ}\mathrm{C}$': ('T 等于 二十 摄氏度',),
+            r'$S^{\ast}$': ('S 上标星号',),
+            r'$f\circ g$': ('f 复合 g',),
+            r'$x^2$': ('x 的平方',),
+        }
+        for source, expected in cases.items():
+            with self.subTest(source=source):
+                spoken = clean_speech_text(source)
+                for value in expected:
+                    self.assertIn(value, spoken)
+                self.assertNotIn('次方 度', spoken)
+        with self.assertRaises(SpeechMathError):
+            speak_math(r'x^\circ')
+
     def test_fraction_retains_the_complete_denominator_and_minus(self):
         value = clean_speech_text(r'$$t=\frac{PR}{SE-0.6P}$$')
         self.assertIn('分子为 P 乘以 R', value)

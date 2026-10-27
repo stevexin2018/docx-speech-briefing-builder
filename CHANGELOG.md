@@ -1,4 +1,8 @@
-## Unreleased — explicit Word file compatibility
+## [2.0.2] - 2026-10-27
+
+- Fix speech parsing for angle superscripts, spaced temperature expressions,
+  and star superscripts while keeping composition and ordinary powers distinct.
+- Handle contextual temperature units and pressure labels in math narration.
 
 - Write `compatibilityMode=15` for native Word output and include it in Word
   diagnostics. Preserve mathematical content, paragraph structure, custom

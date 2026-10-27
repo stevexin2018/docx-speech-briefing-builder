@@ -1,6 +1,6 @@
 # docx-speech-briefing-builder
 
-**稳定版 / Stable:** [v2.0.1](https://github.com/stevexin2018/docx-speech-briefing-builder/releases/tag/v2.0.1) · [Release notes](docs/release-v2.0.1.md)
+**稳定版 / Stable:** [v2.0.2](https://github.com/stevexin2018/docx-speech-briefing-builder/releases/tag/v2.0.2) · [Release notes](docs/release-v2.0.2.md)
 
 All Word CLI and Python entry points now default to the native Pandoc engine. The cached workflow is recommended for automatic records. Use `--engine legacy` only when compatibility rendering is explicitly needed.
 
@@ -27,6 +27,8 @@ python build_briefing.py --input report.md --docx report.docx --engine pandoc --
 The same command supports Word only, MP3 only, or both. Audio and Word report success independently; a failed audio request does not discard a successful Word output. Unknown or unconverted formulas fail the new Word build without replacing an existing document. Diagnostics JSON is created only when requested.
 
 Speech parses marked mathematics before prose cleanup, preserving fraction boundaries, signs, powers, roots and common functions. Standard editions, hole counts and model alternatives are protected from arithmetic rules. Unsupported explicit math fails audio construction while retaining prior audio.
+
+The v2.0.2 speech parser handles common angle, spaced temperature, and star-superscript expressions. Native Word output explicitly selects modern compatibility mode while retaining editable formulas. Some mobile Word reflow views may display complex equations incorrectly; inspect the target reader.
 
 See [the v2 engine guide](docs/v2-engine.md) for source conventions, diagnostics, custom Word references, and regression tests. Full LaTeX packages, automatic equation numbering, and interpretation of math written as code remain outside the supported scope.
 

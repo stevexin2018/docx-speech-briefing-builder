@@ -20,6 +20,7 @@ OPERATORS = {
     "≈": "约等于", "≃": "约等于", "≅": "约等于", "∼": "相似于", "∝": "正比于", "≡": "恒等于",
     "(": "括号", ")": "括号结束", "[": "方括号", "]": "方括号结束",
     "{": "大括号", "}": "大括号结束", "|": "竖线", "‖": "双竖线",
+    "∘": "复合", "*": "星号运算", "∗": "星号运算",
     ",": "，", ";": "；", ":": "比", "!": "阶乘", "%": "百分号", "°": "度",
     "∑": "求和", "∏": "连乘", "∫": "积分", "∬": "二重积分", "∭": "三重积分",
     "∞": "无穷大", "→": "趋向", "⇒": "推出", "∈": "属于", "∉": "不属于",
@@ -46,6 +47,9 @@ def _number(text):
 
 def speak_math(latex):
     """Speak supported TeX through MathML, preserving explicit group boundaries."""
+    # A spacing command immediately before the degree superscript belongs to
+    # the preceding number, not to the superscript's base in MathML.
+    latex = re.sub(r'(?<=[0-9}])\\(?:\s|,|;|:|!)(?=\s*\^\s*\{?\\circ)', '', latex)
     roughness = re.fullmatch(r'\s*(Ra|Rz|Ry|Rq|Sa|Sz)\\,\s*(\d+(?:\.\d+)?)\s*\\sim\s*'
                              r'(\d+(?:\.\d+)?)\\,\s*\\mu\\(?:text|mathrm)\{m\}\s*', latex)
     if roughness:
@@ -70,14 +74,41 @@ def speak_math(latex):
     def kind(node):
         return node.tag.rsplit("}", 1)[-1]
 
+    def degree(node):
+        children = list(node)
+        return (kind(node) == 'msup' and len(children) == 2
+                and kind(children[0]) == 'mn'
+                and ''.join(children[1].itertext()).strip() in {'∘', '°'})
+
+    def unit(node):
+        return (node.text or '').strip() if kind(node) in {'mtext', 'mi'} else ''
+
     def sequence(nodes):
-        parts, previous = [], None
-        for node in nodes:
-            spoken = visit(node)
+        parts, previous, index = [], None, 0
+        nodes = list(nodes)
+        while index < len(nodes):
+            node = nodes[index]
+            following = index + 1
+            while following < len(nodes) and kind(nodes[following]) == 'mspace':
+                following += 1
+            temp = (degree(node) and following < len(nodes) and unit(nodes[following]) in {'C', 'F'})
+            if temp:
+                spoken = visit(list(node)[0]) + (' 摄氏度' if unit(nodes[following]) == 'C' else ' 华氏度')
+                if previous is not None and kind(previous) == 'mo' and (previous.text or '') in {'-', '−'}:
+                    if len(parts) == 1 or (len(parts) >= 2 and parts[-2] in {'等于', '括号', '在', '，', '；'}):
+                        parts[-1] = '零下'
+                index = following
+            else:
+                spoken = visit(node)
+            index += 1
             if not spoken:
                 continue
+            is_connector = kind(node) == 'mtext' and unit(node) == '@'
+            previous_connector = previous is not None and kind(previous) == 'mtext' and unit(previous) == '@'
+            numeric_unit = previous is not None and kind(previous) == 'mn' and unit(node) in UNITS
             if (previous is not None and kind(previous) not in {"mo", "mspace"}
-                    and kind(node) not in {"mo", "mspace"} and (previous.text or "") not in FUNCTIONS):
+                    and kind(node) not in {"mo", "mspace"} and (previous.text or "") not in FUNCTIONS
+                    and not is_connector and not previous_connector and not numeric_unit):
                 parts.append("乘以")
             parts.append(spoken)
             previous = node
@@ -96,6 +127,10 @@ def speak_math(latex):
                 return GREEK[text]
             if text in FUNCTIONS:
                 return FUNCTIONS[text]
+            if tag == 'mtext' and text.strip() == '@':
+                return '在'
+            if tag == 'mtext' and text.strip() in UNITS:
+                return UNITS[text.strip()]
             if node.get("mathvariant") == "normal" and text in UNITS:
                 return UNITS[text]
             return text
@@ -115,8 +150,17 @@ def speak_math(latex):
                 base += f" 下标 {visit(children[1])}，下标结束"
             if tag in {"msup", "msubsup"}:
                 power = children[-1]
-                value = "".join(power.itertext())
-                base += {"2": " 的平方", "3": " 的立方"}.get(value, f" 的 {visit(power)} 次方")
+                value = "".join(power.itertext()).strip()
+                if value in {'∘', '°'}:
+                    if tag != 'msup' or kind(children[0]) != 'mn':
+                        raise SpeechMathError('无法确定圆圈上标的数学含义。')
+                    base += ' 度'
+                elif value in {'*', '∗'}:
+                    base += ' 上标星号'
+                elif value in {'2', '3'}:
+                    base += {'2': ' 的平方', '3': ' 的立方'}[value]
+                else:
+                    base += f" 的 {visit(power)} 次方"
             return base
         if tag == "msqrt":
             return f"根号内 {sequence(children)}，根号结束"
