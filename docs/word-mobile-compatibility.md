@@ -1,5 +1,19 @@
 # Word mobile compatibility candidate
 
+## Device feedback on 2026-10-27
+
+The user confirmed that the old-format prompt disappeared, while the equation
+still stretched in Mobile View. Treat compatibility settings as verified for
+this report/device, and the native-equation reflow attempt as failed. Phone OS
+and Word build were not provided with this feedback; do not generalize it to
+every mobile client.
+
+The layout transformations below remain experimental and must not be merged as
+a proven Mobile View fix. The next local comparison uses a separate reading
+copy with four display equations rendered as fixed-aspect-ratio PNGs; the master
+retains editable native equations. This Windows Word rendering experiment is
+not yet a portable Windows/ARM rendering feature or a default output policy.
+
 Some generated DOCX files omit an explicit Word compatibility mode. Desktop
 Word can identify those documents as Word 2007 mode even though the file uses
 the `.docx` extension. On a phone, the old-format upgrade prompt and the mobile

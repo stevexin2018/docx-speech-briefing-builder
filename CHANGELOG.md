@@ -6,7 +6,11 @@
   separate adjacent prose and narrowly recognized trailing review labels from
   the native equation object without rewriting its mathematical expression.
 - Record layout adjustments in Word diagnostics. Desktop/structural checks do
-  not establish mobile-view acceptance; real-device A/B testing is pending.
+  not establish mobile-view acceptance.
+- Device feedback on 2026-10-27 confirmed the old-format prompt was resolved
+  for the tested report, but Mobile View still stretched its native equation.
+  Keep the paragraph transformations experimental; a separate reading-copy
+  comparison is the next step, not a claimed mobile fix.
 - See [mobile compatibility notes](docs/word-mobile-compatibility.md) for the
   test boundary and rollout criteria. This candidate is not a stable release.
 
