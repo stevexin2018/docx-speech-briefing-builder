@@ -1,3 +1,13 @@
+## [2.0.5rc1] - 2026-10-31 (preview)
+
+- Remove mechanical subscript and fraction closing phrases from engineering
+  narration. Keep explicit grouping for compound denominators and transitions
+  after fractions.
+- Join numeric quantities with spoken unit names to avoid audible pauses.
+- Preserve word-like `\\mathrm{slot}` subscripts as words rather than reading
+  a leading `s` as the seconds unit.
+- Await manual listening before a stable release or production deployment.
+
 ## [2.0.4] - 2026-10-30
 
 - Preserve the established `Ra 3.2 to 6.3 micrometers` narration rule before

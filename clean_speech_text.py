@@ -605,7 +605,17 @@ def clean_speech_text(text: str) -> str:
     text = re.sub(r'^[，。！？；：、\s]+', '', text)
     text = re.sub(r'[，。！？；：、\s]+$', '。', text)
 
-    return restore_structure(text.strip())
+    spoken = restore_structure(text.strip())
+    # Keep numeric quantities together for TTS. The preceding cleaner and
+    # structured math parser both insert spaces before Chinese unit names;
+    # Edge TTS can turn those spaces into audible pauses ("5 毫米").
+    quantity_number = r'(?:\d+(?:点[零一二三四五六七八九]+)?|[零一二三四五六七八九十百千万亿]+(?:点[零一二三四五六七八九]+)?)'
+    quantity_unit = (r'平方毫米|立方毫米|平方厘米|立方厘米|平方米|立方米|'
+                     r'毫米|厘米|千米|微米|米|英寸|吉帕|兆帕|千帕|帕|'
+                     r'摄氏度|华氏度|千克|毫克|微克|克|千焦|焦|千牛|牛|'
+                     r'毫升|升|秒|分钟|小时')
+    return re.sub(rf'(?<![A-Za-z0-9_])({quantity_number})\s+(?=(?:{quantity_unit}))',
+                  r'\1', spoken)
 
 def split_text_chunks(text: str, max_chars: int = 1000) -> list:
     """

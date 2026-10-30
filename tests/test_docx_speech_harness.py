@@ -95,14 +95,14 @@ def test_speech_cleaning():
     assert "NPS 一又四分之一" in cleaned, "错误：NPS 1 1/4 未正确转为'NPS 一又四分之一'！"
     assert "八分之三" in cleaned, "错误：3/8 in 未正确转为'八分之三'！"
     assert "一又四分之一" in cleaned, "错误：1-1/4 in 未正确转为'一又四分之一'！"
-    assert "NPS 四分之一 英寸" in cleaned, "错误：NPS 1/4 未正确转为'NPS 四分之一 英寸'！"
-    assert "NPS 一又四分之一 英寸" in cleaned, "错误：NPS 1 1/4 未正确转为'NPS 一又四分之一 英寸'！"
-    assert "八分之三 英寸" in cleaned, "错误：3/8 in 未正确转为'八分之三 英寸'！"
-    assert "一又四分之一 英寸" in cleaned, "错误：1-1/4 in 未正确转为'一又四分之一 英寸'！"
+    assert "NPS 四分之一英寸" in cleaned, "错误：NPS 1/4 未正确转为'NPS 四分之一英寸'！"
+    assert "NPS 一又四分之一英寸" in cleaned, "错误：NPS 1 1/4 未正确转为'NPS 一又四分之一英寸'！"
+    assert "八分之三英寸" in cleaned, "错误：3/8 in 未正确转为'八分之三英寸'！"
+    assert "一又四分之一英寸" in cleaned, "错误：1-1/4 in 未正确转为'一又四分之一英寸'！"
 
     # 验证温标与区间
-    assert "5 摄氏度" in cleaned, "错误：温度 +5°C / +5^ 未能正确口语化为'5 摄氏度'！"
-    assert "零下 269 摄氏度 至 900 摄氏度" in cleaned, "错误：-269℃ ~ 900℃ 未正确朗读为零下温度区间！"
+    assert "5摄氏度" in cleaned, "错误：温度 +5°C / +5^ 未能正确口语化为'5摄氏度'！"
+    assert "零下 269摄氏度 至 900摄氏度" in cleaned, "错误：-269℃ ~ 900℃ 未正确朗读为零下温度区间！"
     assert "360 度" in cleaned, "错误：360° 未正确朗读为‘360度’！"
     assert "d 除以 D 约等于 零点四六五" in cleaned, "错误：d/D ≈ 0.465 未朗读‘约等于’！"
     assert clean_speech_text("{}°C") == "摄氏度。", "{}°C 未正确清理花括号并朗读为‘摄氏度’！"
@@ -111,7 +111,7 @@ def test_speech_cleaning():
     assert "App 2 除以 App Y" not in cleaned, "错误：App. 2 / App. Y 仍被误读为除以！"
     assert "布氏硬度 248 至 352、洛氏硬度 HRC 24 至 38" in cleaned, "错误：硬度范围中的 ～ 未正确朗读为‘至’！"
     assert clean_speech_text("248 ～ 352") == "248 至 352。", "独立数值范围未正确朗读‘至’！"
-    assert clean_speech_text("-269℃ ~ 900℃") == "零下 269 摄氏度 至 900 摄氏度。", "独立负温区间未正确朗读‘零下’和‘至’！"
+    assert clean_speech_text("-269℃ ~ 900℃") == "零下 269摄氏度 至 900摄氏度。", "独立负温区间未正确朗读‘零下’和‘至’！"
     assert "10至20" in cleaned, "未能正确识别数值区间！"
     assert "1点五 至 2点零" in cleaned, "未能正确朗读小数区间号‘1.5 ～ 2.0’！"
     assert clean_speech_text("1.5 ～ 2.0") == "1点五 至 2点零。", "行首小数区间被误判为大纲标题！"
@@ -143,21 +143,21 @@ def test_speech_cleaning():
     assert "+---" not in cleaned, "错误：TTS 文本中残留 ASCII 边框！"
 
     # 验证 NPS 24" 与各类英制/管径发音
-    assert "NPS 24 英寸" in clean_speech_text('采用 NPS 24" 管道规格'), "错误：NPS 24\" 未转为'NPS 24 英寸'！"
-    assert "NPS 24 英寸" in clean_speech_text("采用 NPS 24 管道规格"), "错误：NPS 24 未转为'NPS 24 英寸'！"
-    assert "24 英寸" in clean_speech_text('管径 24" 管道以及 24 in 管道'), "错误：24\" 或 24 in 未转为'24 英寸'！"
-    assert "二分之一 英寸" in clean_speech_text('壁厚 1/2" 接管'), "错误：1/2\" 未转为'二分之一 英寸'！"
-    assert "零点五 英寸" in clean_speech_text('壁厚 0.5 in 或 0.5"'), "错误：0.5 in / 0.5\" 未转为'零点五 英寸'！"
-    assert "BL 2 英寸 150 RF" in clean_speech_text('盲板 BL2"-150 RF'), "错误：BL2\"-150 RF 未转为'BL 2 英寸 150 RF'！"
+    assert "NPS 24英寸" in clean_speech_text('采用 NPS 24" 管道规格'), "错误：NPS 24\" 未转为'NPS 24英寸'！"
+    assert "NPS 24英寸" in clean_speech_text("采用 NPS 24 管道规格"), "错误：NPS 24 未转为'NPS 24英寸'！"
+    assert "24英寸" in clean_speech_text('管径 24" 管道以及 24 in 管道'), "错误：24\" 或 24 in 未转为'24英寸'！"
+    assert "二分之一英寸" in clean_speech_text('壁厚 1/2" 接管'), "错误：1/2\" 未转为'二分之一英寸'！"
+    assert "零点五英寸" in clean_speech_text('壁厚 0.5 in 或 0.5"'), "错误：0.5 in / 0.5\" 未转为'零点五英寸'！"
+    assert "BL 2英寸 150 RF" in clean_speech_text('盲板 BL2"-150 RF'), "错误：BL2\"-150 RF 未转为'BL 2英寸 150 RF'！"
     assert "焦 每 英寸" in clean_speech_text("线能量 50 J/in. 以及 50 J/in"), "错误：J/in. 未转为'焦 每 英寸'！"
     assert "英寸 每 分钟" in clean_speech_text("焊接速度 10 in./min"), "错误：in./min 未转为'英寸 每 分钟'！"
 
     # 验证表面粗糙度与微米单位发音（v1.2.15）
-    assert "Ra 3点二至6点三 微米" in clean_speech_text("Ra 3.2 - 6.3 μm"), "错误：Ra 3.2 - 6.3 μm 未转为'Ra 3点二至6点三 微米'！"
-    assert "Ra 3点二 至 6点三 微米" in clean_speech_text("$Ra\\,3.2 \\sim 6.3\\,\\mu\\text{m}$"), "错误：LaTeX Ra 粗糙度未转为'Ra 3点二 至 6点三 微米'！"
+    assert "Ra 3点二至6点三微米" in clean_speech_text("Ra 3.2 - 6.3 μm"), "错误：Ra 3.2 - 6.3 μm 未转为'Ra 3点二至6点三微米'！"
+    assert "Ra 3点二 至 6点三微米" in clean_speech_text("$Ra\\,3.2 \\sim 6.3\\,\\mu\\text{m}$"), "错误：LaTeX Ra 粗糙度未转为'Ra 3点二 至 6点三微米'！"
     assert "Ra 3点二 至 6点三" in clean_speech_text("Ra,3.2 ～ 6.3,"), "错误：Ra,3.2 ～ 6.3, 杂音逗号未被正确清除！"
-    assert "10 微米" in clean_speech_text("10, μm 以及 10,um"), "错误：带逗号的微米单位未转为'10 微米'！"
-    assert "零点八 微米" in clean_speech_text("0.8 μm 表面光洁度"), "错误：行首小数微米单位被误读为章节编号！"
+    assert "10微米" in clean_speech_text("10, μm 以及 10,um"), "错误：带逗号的微米单位未转为'10微米'！"
+    assert "零点八微米" in clean_speech_text("0.8 μm 表面光洁度"), "错误：行首小数微米单位被误读为章节编号！"
     print("\n[✓] TTS 语音清洗与工程分式/温度测试全部通过！")
 
 def test_docx_rendering():
