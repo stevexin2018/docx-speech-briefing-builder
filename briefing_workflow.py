@@ -135,6 +135,7 @@ def _word_config(raw, title, topic, engine, pandoc_path, reference):
         result = subprocess.run([executable, '--version'], capture_output=True, text=True, timeout=20, check=True)
         config['pandoc'] = {'version': result.stdout.splitlines()[0], 'sha256': _hash_file(executable)}
         names += [p.relative_to(CORE).as_posix() for p in (CORE / 'briefing_v2').glob('*.py')]
+        names.append('ascii_schematic.py')
         if reference:
             config['reference_sha256'] = _hash_file(reference)
     else:
@@ -152,7 +153,8 @@ def _audio_config(raw, rate, voice):
     return {'cleaned_sha256': hashlib.sha256(cleaned.encode('utf-8')).hexdigest(), 'rate': rate,
             'voice': voice, 'packages': _packages(['edge-tts', 'latex2mathml']),
             'components': _components(['clean_speech_text.py', 'speech_structure.py',
-                                       'unit_verbalizer.py', 'engineering_text.py'])}
+                                       'unit_verbalizer.py', 'engineering_text.py',
+                                       'ascii_schematic.py'])}
 
 
 def _diagnostic(code, message, source, severity='error'):

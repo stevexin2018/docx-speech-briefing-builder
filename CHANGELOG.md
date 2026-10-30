@@ -1,3 +1,15 @@
+## [2.0.3] - 2026-10-30
+
+- Convert narrowly recognized labelled ASCII section sketches to ordered prose in
+  native Word and speech. Remove decorative `=` and `-` rules while retaining
+  layer names and arrow annotations. Preserve unrelated code blocks literally.
+- Prevent implied multiplication inside alphanumeric subscripts and before text
+  units or diameter dimensions; keep explicit and genuine formula products.
+  Speak roughness ranges and micrometer units correctly.
+- Normalize numeric inch quotation marks inside explicit math before Word and
+  speech conversion, fixing the observed Pandoc failure for `2.5"`.
+- Include the shared sketch parser in both Word and audio cache fingerprints.
+
 ## [2.0.2] - 2026-10-27
 
 - Fix speech parsing for angle superscripts, spaced temperature expressions,

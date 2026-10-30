@@ -4,6 +4,7 @@ import re
 from collections import Counter
 
 from engineering_text import normalize_quantities
+from ascii_schematic import schematic_rows
 from .diagnostics import SourceLocator
 
 POWER_UNIT = re.compile(r"(?<![A-Za-z_])((?:km|cm|dm|mm|um|μm|µm|nm|in|ft|yd|m))([²³⁴])(?![A-Za-z0-9_])")
@@ -83,13 +84,22 @@ def normalize_ast(ast, source, source_name="<markdown>"):
                 else:
                     converted = visit(item, path)
                     if converted is not _REMOVE:
-                        output.append(converted)
+                        if isinstance(converted, list) and isinstance(item, dict) and item.get('t') == 'CodeBlock':
+                            output.extend(converted)
+                        else:
+                            output.append(converted)
             return output
         if not isinstance(value, dict):
             return value
         kind = value.get("t")
         if kind:
             counts[kind] += 1
+        if kind == "CodeBlock":
+            rows = schematic_rows(value["c"][1])
+            if rows is not None:
+                changes += 1
+                add("ASCII_SCHEMATIC_NORMALIZED", "info", "剖面示意图已转为文字层次，移除装饰线。", value["c"][1], pointer)
+                return [{"t": "Para", "c": [{"t": "Str", "c": row}]} for row in rows]
         if kind in {"Code", "CodeBlock"}:
             text = value["c"][1]
             protected.append({"kind": kind, "text": text, "node": pointer})
@@ -98,6 +108,12 @@ def normalize_ast(ast, source, source_name="<markdown>"):
             return value
         if kind == "Math":
             text = value["c"][1]
+            normalized = re.sub(r'(?<=\d)"', r'\\text{ in}', text)
+            if normalized != text:
+                changes += 1
+                add("MATH_INCH_QUOTE_NORMALIZED", "info", "公式中的英寸引号已转换为明确的英寸单位。", text, pointer)
+                value = {**value, "c": [value["c"][0], normalized]}
+                text = normalized
             formulas.append({"text": text, "node": pointer})
             if REFERENCE_COMMAND.search(text):
                 add("UNSUPPORTED_LATEX_COMMAND", "error", "此阶段不支持公式编号、引用或宏定义命令，请移出公式或展开定义。", text, pointer)

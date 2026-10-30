@@ -103,9 +103,48 @@ class SpeechStructureTests(unittest.TestCase):
         self.assertNotIn('下标', clean_speech_text('`x_i^2`'))
         self.assertNotIn('等于', clean_speech_text(r'C:\data\$x$\report.docx'))
 
+    def test_labelled_section_sketch_and_identifier_speech(self):
+        sketch = ('```\n[48 mm SA-105 法兰盖基体]\n'
+                  '================================== <-- 结构承载受压面\n'
+                  '[4 mm 硬橡胶衬里] <-- 不承压\n'
+                  '----------------------------------\n'
+                  '[3 mm 软垫片]\n```')
+        spoken = clean_speech_text(sketch)
+        self.assertIn('结构承载受压面', spoken)
+        self.assertIn('不承压', spoken)
+        self.assertNotIn('====', spoken)
+        self.assertNotIn('----', spoken)
+        self.assertNotIn('等于', spoken)
+        self.assertIn('W 下标 m 二，下标结束', clean_speech_text(r'$W_{m2}$'))
+        self.assertNotIn('乘以 二，下标结束', clean_speech_text(r'$W_{m2}$'))
+        self.assertIn('直径 三千六百 毫米', clean_speech_text(r'$\Phi 3600\text{ mm}$'))
+        self.assertIn('R z 五十 至 八十 微米', clean_speech_text(r'$Rz\ 50 \sim 80\ \mu\text{m}$'))
+        self.assertIn('派 乘以 G 乘以 m 乘以 P', clean_speech_text(r'$\pi G m P$'))
+        self.assertIn('P 毫米', clean_speech_text(r'$P\text{ mm}$'))
+        self.assertIn('二点五 英寸', clean_speech_text(r'$\le 2.5"$'))
+        self.assertIn('x = 1', clean_speech_text('```\nx = 1\n```'))
+
 
 @unittest.skipUnless(PANDOC, 'Pandoc is required for native Word regression')
 class NativeWordReleaseTests(unittest.TestCase):
+    def test_section_sketch_removes_rules_but_keeps_labels_and_inches(self):
+        with tempfile.TemporaryDirectory() as folder:
+            output = Path(folder) / 'sketch.docx'
+            source = ('# Review\n\n```\n[48 mm 法兰盖]\n'
+                      '=================== <-- 承压面\n'
+                      '[4 mm 衬里] <-- 不承压\n'
+                      '-------------------\n[3 mm 垫片]\n```\n\n'
+                      '螺柱直径为 $\\le 2.5"$ 或 $> 2.5"$。')
+            report = render_markdown(source, output, pandoc_path=PANDOC)
+            self.assertEqual(report['status'], 'success')
+            doc = Document(output)
+            full_text = '\n'.join(p.text for p in doc.paragraphs)
+            self.assertIn('48 mm 法兰盖；承压面', full_text)
+            self.assertIn('4 mm 衬里；不承压', full_text)
+            self.assertNotIn('====', full_text)
+            self.assertNotIn('----', full_text)
+            self.assertEqual(report['output_counts']['math'], 2)
+
     def test_custom_template_preserves_identifiers_and_gets_pagination_guards(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)

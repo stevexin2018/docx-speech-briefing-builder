@@ -2,6 +2,7 @@
 import re
 import xml.etree.ElementTree as ET
 from engineering_text import cardinal_cn
+from ascii_schematic import schematic_rows
 
 
 class SpeechMathError(ValueError):
@@ -32,7 +33,7 @@ FUNCTIONS = {"cos": "余弦", "sin": "正弦", "tan": "正切", "cot": "余切",
     "arccos": "反余弦", "arcsin": "反正弦", "arctan": "反正切", "cosh": "双曲余弦",
     "sinh": "双曲正弦", "tanh": "双曲正切", "max": "最大值", "min": "最小值",
     "log": "对数", "ln": "自然对数", "exp": "指数函数", "lim": "极限", "det": "行列式"}
-UNITS = {"m": "米", "mm": "毫米", "cm": "厘米", "s": "秒", "kg": "千克",
+UNITS = {"m": "米", "mm": "毫米", "cm": "厘米", "in": "英寸", "μm": "微米", "s": "秒", "kg": "千克",
          "N": "牛", "Pa": "帕", "MPa": "兆帕", "K": "开尔文", "rad": "弧度"}
 
 
@@ -50,6 +51,8 @@ def speak_math(latex):
     # A spacing command immediately before the degree superscript belongs to
     # the preceding number, not to the superscript's base in MathML.
     latex = re.sub(r'(?<=[0-9}])\\(?:\s|,|;|:|!)(?=\s*\^\s*\{?\\circ)', '', latex)
+    latex = re.sub(r'(?<=\d)"', r'\\text{ in}', latex)
+    latex = re.sub(r'\\(?:mu|upmu)\\(?:text|mathrm)\{m\}', r'\\text{μm}', latex)
     roughness = re.fullmatch(r'\s*(Ra|Rz|Ry|Rq|Sa|Sz)\\,\s*(\d+(?:\.\d+)?)\s*\\sim\s*'
                              r'(\d+(?:\.\d+)?)\\,\s*\\mu\\(?:text|mathrm)\{m\}\s*', latex)
     if roughness:
@@ -83,6 +86,14 @@ def speak_math(latex):
     def unit(node):
         return (node.text or '').strip() if kind(node) in {'mtext', 'mi'} else ''
 
+    def operator(node):
+        return kind(node) == 'mo' or (kind(node) == 'mi' and (node.text or '') == '~')
+
+    def script(node):
+        if kind(node) == 'mrow':
+            return ' '.join(filter(None, (script(child) for child in node)))
+        return visit(node)
+
     def sequence(nodes):
         parts, previous, index = [], None, 0
         nodes = list(nodes)
@@ -100,15 +111,25 @@ def speak_math(latex):
                 index = following
             else:
                 spoken = visit(node)
+                if kind(node) == 'mi' and (node.text or '') == '~':
+                    left_number = any(kind(item) == 'mn' for item in nodes[max(0, index - 2):index])
+                    right_number = any(kind(item) == 'mn' for item in nodes[index + 1:index + 3])
+                    spoken = '至' if left_number and right_number else '相似于'
             index += 1
             if not spoken:
                 continue
+            if previous is not None and (previous.text or '') == 'Φ' and kind(node) == 'mn':
+                parts[-1] = '直径'
             is_connector = kind(node) == 'mtext' and unit(node) == '@'
             previous_connector = previous is not None and kind(previous) == 'mtext' and unit(previous) == '@'
-            numeric_unit = previous is not None and kind(previous) == 'mn' and unit(node) in UNITS
-            if (previous is not None and kind(previous) not in {"mo", "mspace"}
-                    and kind(node) not in {"mo", "mspace"} and (previous.text or "") not in FUNCTIONS
-                    and not is_connector and not previous_connector and not numeric_unit):
+            text_unit = kind(node) == 'mtext' or unit(node) in UNITS and kind(node) == 'mi' and node.get('mathvariant') == 'normal'
+            identifier_suffix = previous is not None and kind(previous) == 'mi' and kind(node) == 'mn'
+            identifier_name = (previous is not None and kind(previous) == 'mi' and kind(node) == 'mi'
+                               and (previous.text or '') + (node.text or '') in {'Ra', 'Rz', 'Ry', 'Rq', 'Sa', 'Sz'})
+            if (previous is not None and not operator(previous) and kind(previous) != 'mspace'
+                    and not operator(node) and kind(node) != 'mspace' and (previous.text or "") not in FUNCTIONS
+                    and not is_connector and not previous_connector and not text_unit
+                    and not identifier_suffix and not identifier_name):
                 parts.append("乘以")
             parts.append(spoken)
             previous = node
@@ -121,6 +142,8 @@ def speak_math(latex):
         if tag in {"mi", "mtext", "ms"}:
             if "\\" in text:
                 raise SpeechMathError("存在未支持的数学命令；不能将命令名直接送入语音。")
+            if tag == 'mtext' and not text.strip():
+                return ''
             if text == "ℓ":
                 return "小写 l"
             if text in GREEK:
@@ -147,7 +170,7 @@ def speak_math(latex):
         if tag in {"msub", "msup", "msubsup"}:
             base = visit(children[0])
             if tag in {"msub", "msubsup"}:
-                base += f" 下标 {visit(children[1])}，下标结束"
+                base += f" 下标 {script(children[1])}，下标结束"
             if tag in {"msup", "msubsup"}:
                 power = children[-1]
                 value = "".join(power.itertext()).strip()
@@ -204,8 +227,13 @@ def protect_structure(text, path_speaker):
     text = re.sub(r"(?m)^\s*:{3,}(?:\s*(?:\{[^\n]*\}|[\w.-]+))?\s*$", "", text)
 
     def code(match):
-        value = match[0]
-        value = "\n".join(value.splitlines()[1:-1]) if value.startswith(("```", "~~~")) else value.strip("`")
+        value = match[0].strip()
+        fenced = value.startswith(("```", "~~~"))
+        value = "\n".join(value.splitlines()[1:-1]) if fenced else value.strip("`")
+        if fenced:
+            rows = schematic_rows(value)
+            if rows is not None:
+                return '\n'.join(rows)
         if re.search(r"(?:[A-Za-z]:[\\/]|\\\\|HKLM:|HKCU:)", value):
             return save(path_speaker(value))
         return save(value.replace("\\", " 反斜杠 ").replace("_", " 下划线 "))
