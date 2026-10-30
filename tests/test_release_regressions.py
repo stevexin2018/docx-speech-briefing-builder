@@ -119,6 +119,7 @@ class SpeechStructureTests(unittest.TestCase):
         self.assertNotIn('乘以 二，下标结束', clean_speech_text(r'$W_{m2}$'))
         self.assertIn('直径 三千六百 毫米', clean_speech_text(r'$\Phi 3600\text{ mm}$'))
         self.assertIn('R z 五十 至 八十 微米', clean_speech_text(r'$Rz\ 50 \sim 80\ \mu\text{m}$'))
+        self.assertIn('Ra 3点二 至 6点三 微米', clean_speech_text(r'$Ra\,3.2 \sim 6.3\,\mu\text{m}$'))
         self.assertIn('派 乘以 G 乘以 m 乘以 P', clean_speech_text(r'$\pi G m P$'))
         self.assertIn('P 毫米', clean_speech_text(r'$P\text{ mm}$'))
         self.assertIn('二点五 英寸', clean_speech_text(r'$\le 2.5"$'))

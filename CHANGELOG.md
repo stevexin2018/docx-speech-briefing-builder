@@ -1,3 +1,11 @@
+## [2.0.4] - 2026-10-30
+
+- Preserve the established `Ra 3.2 to 6.3 micrometers` narration rule before
+  normalizing other micrometer expressions. Add a regression case and pass the
+  ARM skill manager's direct compatibility harness.
+- Supersede v2.0.3, which was published to GitHub and Windows but blocked by
+  the ARM deployment gate before changing the active ARM skill.
+
 ## [2.0.3] - 2026-10-30
 
 - Convert narrowly recognized labelled ASCII section sketches to ordered prose in

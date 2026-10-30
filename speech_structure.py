@@ -51,8 +51,6 @@ def speak_math(latex):
     # A spacing command immediately before the degree superscript belongs to
     # the preceding number, not to the superscript's base in MathML.
     latex = re.sub(r'(?<=[0-9}])\\(?:\s|,|;|:|!)(?=\s*\^\s*\{?\\circ)', '', latex)
-    latex = re.sub(r'(?<=\d)"', r'\\text{ in}', latex)
-    latex = re.sub(r'\\(?:mu|upmu)\\(?:text|mathrm)\{m\}', r'\\text{μm}', latex)
     roughness = re.fullmatch(r'\s*(Ra|Rz|Ry|Rq|Sa|Sz)\\,\s*(\d+(?:\.\d+)?)\s*\\sim\s*'
                              r'(\d+(?:\.\d+)?)\\,\s*\\mu\\(?:text|mathrm)\{m\}\s*', latex)
     if roughness:
@@ -62,6 +60,8 @@ def speak_math(latex):
             a, b = value.split('.')
             return a + '点' + ''.join('零一二三四五六七八九'[int(c)] for c in b)
         return f'{roughness[1]} {decimal(roughness[2])} 至 {decimal(roughness[3])} 微米'
+    latex = re.sub(r'(?<=\d)"', r'\\text{ in}', latex)
+    latex = re.sub(r'\\(?:mu|upmu)\\(?:text|mathrm)\{m\}', r'\\text{μm}', latex)
     temperature = re.fullmatch(r"\s*([+−-]?)(\d+(?:\.\d+)?)\s*\^\s*\{?\\circ\}?\s*"
         r"(?:\\(?:text|mathrm)\{([CF])\}|([CF]))\s*", latex)
     if temperature:

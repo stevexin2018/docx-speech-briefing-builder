@@ -1,12 +1,12 @@
 ---
 name: docx-speech-briefing-builder
 metadata:
-  version: "2.0.3"
+  version: "2.0.4"
   updated: "2026-10-30"
 description: 将 Markdown 深度工程报告自动转换为排版 Word 文档 (.docx) 与正常语速高品质语音讲解音频 (.mp3)。核心引擎已完全独立解耦至独立仓库 (https://github.com/stevexin2018/docx-speech-briefing-builder)。
 ---
 
-# Word & Normal Speed Speech Briefing Builder (v2.0.3)
+# Word & Normal Speed Speech Briefing Builder (v2.0.4)
 
 ## 📌 概述
 本 Skill 作为 OpenClaw 技能协议入口，底层直接连接 **`docx-speech-briefing-builder` 独立组件库**（独立 Git 仓库：`https://github.com/stevexin2018/docx-speech-briefing-builder`）。
@@ -38,6 +38,8 @@ ARM 的 `openclaw_assets.py` 附件入口默认 Pandoc，无需 `--trial`；旧�
 v2.0.2 针对带 LaTeX 空格的温度、角度及星号上标补充语音解析；公式以原生可编辑对象输出，现代 Word 兼容模式记录在 Word 诊断中。手机 Word 阅读视图对部分复杂公式可能出现重排异常，可用其他已验证的手机文档阅读器查看。只生成用户要求的一份 Word 和／或音频。
 
 v2.0.3 将带文字标注的 ASCII 剖面示意图转换为顺序文字段落，删除纯装饰线并保留层名及说明；一般代码块仍原样保留。语音避免把下标中的数字和文字单位误读成乘法，明确的公式乘积继续朗读“乘以”。公式中的数字英寸引号（如 `$\le 2.5"$`）规范为英寸单位，以免 Word 数学转换失败。
+
+v2.0.4 保留既有的 `Ra\,3.2 \sim 6.3\,\mu\text{m}` 等粗糙度区间优先规则；此修正通过 ARM 受管更新的候选回归门禁。
 
 记录 schema 2：`build_contract_passed` 仅表示技术构建通过，`ready_for_delivery` 为兼容字段。`review_required=true`、`manual_review_required=true` 和 `fully_accepted=false` 如实保留人工验收状态；`acceptance.visual`、`listening` 不自动标成已完成，工程状态为 `not_assessed`。不得将 `status=success` 当成逐页验收、语音试听或设备安全放行。
 
