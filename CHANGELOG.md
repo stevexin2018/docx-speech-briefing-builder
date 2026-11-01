@@ -1,3 +1,10 @@
+## [2.0.5rc2] - 2026-11-01 (preview)
+
+- Read simple subscripts with a short prosodic separator instead of saying
+  "subscript", e.g. `W_{m2}` as `W、m二`. Keep explicit structure for compound
+  subscripts and simultaneous subscript/superscript expressions.
+- Await manual listening before a stable release or production deployment.
+
 ## [2.0.5rc1] - 2026-10-31 (preview)
 
 - Remove mechanical subscript and fraction closing phrases from engineering

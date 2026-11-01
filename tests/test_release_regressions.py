@@ -49,8 +49,9 @@ class SpeechStructureTests(unittest.TestCase):
         value = clean_speech_text(r'$$P_i=P_0+\frac{\rho g h_i}{10^6}$$')
         self.assertIn('加上', value)
         self.assertIn('十 的 六 次方', value)
-        self.assertIn('下标 i', value)
-        self.assertNotIn('下标结束', value)
+        self.assertIn('P、i', value)
+        self.assertIn('h、i', value)
+        self.assertNotIn('下标', value)
         self.assertNotIn('10 6', value)
 
     def test_nested_fraction_scripts_and_trigonometry(self):
@@ -63,7 +64,7 @@ class SpeechStructureTests(unittest.TestCase):
             self.assertNotIn('分式结束', value)
         self.assertIn('减去', clean_speech_text(r'$$\ell=s-\frac{d_1+d_2}{2}$$'))
         self.assertIn('除以括号里的 n 乘以 余弦 贝塔', clean_speech_text(r'$$T=\frac{\varphi m g}{n\cos\beta}$$'))
-        self.assertIn('l 下标 slot', clean_speech_text(r'$l_{\mathrm{slot}}$'))
+        self.assertIn('l、slot', clean_speech_text(r'$l_{\mathrm{slot}}$'))
 
     def test_nested_roots_and_matrix(self):
         self.assertIn('根号结束', speak_math(r'\sqrt{\frac{a^2}{b^2}}'))
@@ -119,8 +120,8 @@ class SpeechStructureTests(unittest.TestCase):
         self.assertNotIn('====', spoken)
         self.assertNotIn('----', spoken)
         self.assertNotIn('等于', spoken)
-        self.assertIn('W 下标 m 二', clean_speech_text(r'$W_{m2}$'))
-        self.assertNotIn('下标结束', clean_speech_text(r'$W_{m2}$'))
+        self.assertIn('W、m二', clean_speech_text(r'$W_{m2}$'))
+        self.assertNotIn('下标', clean_speech_text(r'$W_{m2}$'))
         self.assertIn('直径 三千六百毫米', clean_speech_text(r'$\Phi 3600\text{ mm}$'))
         self.assertIn('R z 五十 至 八十微米', clean_speech_text(r'$Rz\ 50 \sim 80\ \mu\text{m}$'))
         self.assertIn('Ra 3点二 至 6点三微米', clean_speech_text(r'$Ra\,3.2 \sim 6.3\,\mu\text{m}$'))
@@ -130,12 +131,15 @@ class SpeechStructureTests(unittest.TestCase):
         self.assertIn('x = 1', clean_speech_text('```\nx = 1\n```'))
 
     def test_natural_speech_from_manual_report_review(self):
-        self.assertEqual(clean_speech_text(r'$t_{\text{total}}$'), 't 下标 total。')
-        self.assertIn('a 下标 i 乘以 b', clean_speech_text(r'$a_i b$'))
+        self.assertEqual(clean_speech_text(r'$t_{\text{total}}$'), 't、total。')
+        self.assertIn('a、i 乘以 b', clean_speech_text(r'$a_i b$'))
         fraction = clean_speech_text(r'$W_{m1}=\frac{\pi G^2 P}{4}+2b\pi GmP$')
-        self.assertIn('W 下标 m 一 等于 派 乘以 G 的平方 乘以 P，除以四，再加上 二 乘以 b', fraction)
+        self.assertIn('W、m一 等于 派 乘以 G 的平方 乘以 P，除以四，再加上 二 乘以 b', fraction)
         self.assertNotIn('分子为', fraction)
         self.assertNotIn('分式结束', fraction)
+        self.assertIn('下标', clean_speech_text(r'$a_{i+1}$'))
+        self.assertIn('下标', clean_speech_text(r'$a_i^2$'))
+        self.assertIn('下标', clean_speech_text(r'$\sigma_{\text{allow, rubber}}$'))
         for source, expected in [('5mm', '5毫米。'), ('5 mm', '5毫米。'),
                                  (r'$5\text{ mm}$', '五毫米。'), ('1.5 MPa', '1点五兆帕。')]:
             with self.subTest(source=source):

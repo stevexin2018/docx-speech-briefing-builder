@@ -98,6 +98,11 @@ def speak_math(latex):
             return ' '.join(filter(None, (script(child) for child in children)))
         return visit(node)
 
+    def simple_subscript(base, subscript):
+        label = ''.join(subscript.itertext()).strip()
+        return (kind(base) == 'mi' and len(base.text or '') == 1
+                and bool(re.fullmatch(r'[A-Za-z0-9α-ωΑ-Ω]{1,16}', label)))
+
     def grouped_sum(node):
         return (kind(node) == 'mrow' and any(kind(child) == 'mo' and (child.text or '') in {'+', '-', '−'}
                                              for child in node))
@@ -195,7 +200,12 @@ def speak_math(latex):
         if tag in {"msub", "msup", "msubsup"}:
             base = visit(children[0])
             if tag in {"msub", "msubsup"}:
-                base += f" 下标 {script(children[1])}"
+                label = script(children[1])
+                if tag == 'msub' and simple_subscript(children[0], children[1]):
+                    label = re.sub(r'(?<=[A-Za-z]) (?=[零一二三四五六七八九十])', '', label)
+                    base += f'、{label}'
+                else:
+                    base += f' 下标 {label}'
             if tag in {"msup", "msubsup"}:
                 power = children[-1]
                 value = "".join(power.itertext()).strip()

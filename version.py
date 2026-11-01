@@ -1,3 +1,3 @@
 """Version metadata for docx-speech-briefing-builder."""
 
-__version__ = "2.0.5rc1"
+__version__ = "2.0.5rc2"

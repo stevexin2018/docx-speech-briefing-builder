@@ -1,12 +1,12 @@
 ---
 name: docx-speech-briefing-builder
 metadata:
-  version: "2.0.5rc1"
+  version: "2.0.5rc2"
   updated: "2026-10-31"
 description: 将 Markdown 深度工程报告自动转换为排版 Word 文档 (.docx) 与正常语速高品质语音讲解音频 (.mp3)。核心引擎已完全独立解耦至独立仓库 (https://github.com/stevexin2018/docx-speech-briefing-builder)。
 ---
 
-# Word & Normal Speed Speech Briefing Builder (v2.0.5rc1 preview)
+# Word & Normal Speed Speech Briefing Builder (v2.0.5rc2 preview)
 
 ## 📌 概述
 本 Skill 作为 OpenClaw 技能协议入口，底层直接连接 **`docx-speech-briefing-builder` 独立组件库**（独立 Git 仓库：`https://github.com/stevexin2018/docx-speech-briefing-builder`）。
@@ -42,6 +42,8 @@ v2.0.3 将带文字标注的 ASCII 剖面示意图转换为顺序文字段落，
 v2.0.4 保留既有的 `Ra\,3.2 \sim 6.3\,\mu\text{m}` 等粗糙度区间优先规则；此修正通过 ARM 受管更新的候选回归门禁。
 
 v2.0.5rc1 为人工试听候选：简单字母下标不再朗读“下标结束”，分式改用“除以”及必要的括号范围，不朗读“分子为／分式结束”；数值与计量单位在语音文本中相连，减少不自然停顿。正式版仍为 v2.0.4，候选需人工复听后再决定发布。
+
+v2.0.5rc2 进一步将简单下标读作“主字母、下标字符”，例如 `$W_{m2}$` 读为“W、m二”，不说“下标”。含运算的复杂下标或同时有上下标时保留明确提示，避免含义混淆。正式版仍为 v2.0.4。
 
 记录 schema 2：`build_contract_passed` 仅表示技术构建通过，`ready_for_delivery` 为兼容字段。`review_required=true`、`manual_review_required=true` 和 `fully_accepted=false` 如实保留人工验收状态；`acceptance.visual`、`listening` 不自动标成已完成，工程状态为 `not_assessed`。不得将 `status=success` 当成逐页验收、语音试听或设备安全放行。
 
