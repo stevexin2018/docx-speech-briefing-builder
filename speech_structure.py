@@ -36,6 +36,22 @@ FUNCTIONS = {"cos": "余弦", "sin": "正弦", "tan": "正切", "cot": "余切",
 UNITS = {"m": "米", "mm": "毫米", "cm": "厘米", "in": "英寸", "μm": "微米", "s": "秒", "kg": "千克",
          "N": "牛", "Pa": "帕", "MPa": "兆帕", "K": "开尔文", "rad": "弧度"}
 
+# Require a scheme or a real-looking hostname, never a numeric decimal.
+# ASCII URL characters stop before adjacent Chinese prose and Markdown wrappers.
+_WEB_HOST = r"(?:[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?\.)+[A-Za-z]{2,24}"
+_WEB_TAIL = r"(?:/[A-Za-z0-9._~%!$&*+,;=:@/?#-]*)?"
+_WEB_ADDRESS = re.compile(
+    r"(?<![A-Za-z0-9_@./\\])(?:https?://[A-Za-z0-9.-]+|"
+    + _WEB_HOST + r")(?::\d{1,5})?" + _WEB_TAIL, re.I)
+
+
+def _speak_web_address(value):
+    value = re.sub(r"^https?://", "", value, flags=re.I)
+    names = {"/": " 斜杠 ", ".": " 点 ", "_": " 下划线 ", "-": " 连接号 ",
+             "?": " 问号 ", "&": " 与 ", "=": " 等号 ", "#": " 井号 ",
+             "%": " 百分号 ", ":": " 冒号 ", "@": " at ", "+": " 加号 "}
+    return "".join(names.get(char, char) for char in value)
+
 
 def _number(text):
     if re.fullmatch(r"\d+", text):
@@ -236,6 +252,8 @@ def protect_structure(text, path_speaker):
                 return '\n'.join(rows)
         if re.search(r"(?:[A-Za-z]:[\\/]|\\\\|HKLM:|HKCU:)", value):
             return save(path_speaker(value))
+        if not fenced and _WEB_ADDRESS.fullmatch(value):
+            return save(_speak_web_address(value))
         return save(value.replace("\\", " 反斜杠 ").replace("_", " 下划线 "))
     text = re.sub(r"(?ms)^\s*(`{3,}|~{3,})[^\n]*\n.*?^\s*\1\s*$|`+[^`\n]+`+", code, text)
     bare_path = r'''(?<![A-Za-z0-9_])(?:[A-Za-z]:[\\/]|(?:HKLM|HKCU|HKEY_[A-Z_]+):[\\/]|\\\\[A-Za-z0-9_.-]+[\\/])[^\s，。！？；：、`"'<>\[\]{}()]+'''
@@ -245,6 +263,20 @@ def protect_structure(text, path_speaker):
     text = re.sub(pattern, lambda m: save(speak_math(next(g for g in m.groups() if g is not None))), text, flags=re.S)
     if "$$" in text or r"\[" in text or r"\(" in text:
         raise SpeechMathError("数学定界符未闭合；已有音频保留。")
+
+    def web_address(match):
+        address = match[0].rstrip(".,;:!?")
+        return save(_speak_web_address(address)) + match[0][len(address):]
+
+    # Protect addresses before units, fractions and bare arithmetic are parsed.
+    # Explicit math and code have already been guarded above.
+    text = _WEB_ADDRESS.sub(web_address, text)
+    # Year-based relative web paths (hub/2026) are also address fragments.
+    # Do not classify arbitrary a/b, D/t, kJ/mm or standard numbers as paths.
+    text = re.sub(r"(?<![A-Za-z0-9_./])"
+                  r"[a-z][a-z_-]{2,}/(?:19|20)\d{2}(?:/[A-Za-z0-9._~-]+)*"
+                  r"(?![A-Za-z0-9_])", web_address, text)
+
     def plain_formula(match):
         # Plain prose can use gamma1 or K3 as identifiers. Only unambiguous
         # stand-alone arithmetic with explicit grouping/multiplication is parsed.
