@@ -19,13 +19,29 @@ except FileNotFoundError:
 
 
 class SpeechStructureTests(unittest.TestCase):
+    def test_daily_report_subscripts_use_the_reviewed_short_pause(self):
+        cases = {
+            r'跨度取长边两端约束跨距 $L_{\text{span}}$，': 'L、span',
+            r'$W_{m2}$': 'W、m二',
+            r'$t_{\text{total}}$': 't、total',
+            r'$Z_{\mathrm{net}}$': 'Z、net',
+        }
+        for source, expected in cases.items():
+            with self.subTest(source=source):
+                value = clean_speech_text(source)
+                self.assertIn(expected, value)
+                self.assertNotIn('下标', value)
+        # Complex expressions still need structure; do not delete words globally.
+        self.assertIn('下标', clean_speech_text(r'$x_{i+1}$'))
+        self.assertIn('下标', clean_speech_text(r'$x_i^2$'))
+
     def test_angles_temperatures_and_star_superscripts_in_context(self):
         cases = {
             r'$45^\circ$': ('四十五 度',),
             r'$1.5 \times 45^\circ$': ('一点五 乘以 四十五 度',),
-            r'$80\ ^\circ\text{C}$': ('80 摄氏度',),
-            r'$-29\ ^\circ\text{C} \text{ @ } 0.6\text{ MPa}$': ('零下 二十九 摄氏度', '在 零点六 兆帕'),
-            r'$T=20^{\circ}\mathrm{C}$': ('T 等于 二十 摄氏度',),
+            r'$80\ ^\circ\text{C}$': ('80摄氏度',),
+            r'$-29\ ^\circ\text{C} \text{ @ } 0.6\text{ MPa}$': ('零下 二十九摄氏度', '在 零点六兆帕'),
+            r'$T=20^{\circ}\mathrm{C}$': ('T 等于 二十摄氏度',),
             r'$S^{\ast}$': ('S 上标星号',),
             r'$f\circ g$': ('f 复合 g',),
             r'$x^2$': ('x 的平方',),
@@ -41,14 +57,17 @@ class SpeechStructureTests(unittest.TestCase):
 
     def test_fraction_retains_the_complete_denominator_and_minus(self):
         value = clean_speech_text(r'$$t=\frac{PR}{SE-0.6P}$$')
-        self.assertIn('分子为 P 乘以 R', value)
-        self.assertIn('除以分母 S 乘以 E 减去 零点六 乘以 P，分式结束', value)
+        self.assertIn('P 乘以 R，除以括号里的 S 乘以 E 减去 零点六 乘以 P', value)
+        self.assertNotIn('分子为', value)
+        self.assertNotIn('分式结束', value)
 
     def test_addition_power_and_subscript_survive_the_prose_cleaner(self):
         value = clean_speech_text(r'$$P_i=P_0+\frac{\rho g h_i}{10^6}$$')
         self.assertIn('加上', value)
         self.assertIn('十 的 六 次方', value)
-        self.assertIn('下标 i，下标结束', value)
+        self.assertIn('P、i', value)
+        self.assertIn('h、i', value)
+        self.assertNotIn('下标', value)
         self.assertNotIn('10 6', value)
 
     def test_nested_fraction_scripts_and_trigonometry(self):
@@ -57,9 +76,11 @@ class SpeechStructureTests(unittest.TestCase):
                        r'$$T=\frac{\varphi m g}{n\cos\beta}$$']:
             value = clean_speech_text(source)
             self.assertNotRegex(value, r'\\[A-Za-z]+|\b(?:frac|ell|varphi|cos)\b')
-            self.assertIn('分式结束', value)
+            self.assertIn('除以', value)
+            self.assertNotIn('分式结束', value)
         self.assertIn('减去', clean_speech_text(r'$$\ell=s-\frac{d_1+d_2}{2}$$'))
-        self.assertIn('除以分母 n 乘以 余弦 贝塔', clean_speech_text(r'$$T=\frac{\varphi m g}{n\cos\beta}$$'))
+        self.assertIn('除以括号里的 n 乘以 余弦 贝塔', clean_speech_text(r'$$T=\frac{\varphi m g}{n\cos\beta}$$'))
+        self.assertIn('l、slot', clean_speech_text(r'$l_{\mathrm{slot}}$'))
 
     def test_nested_roots_and_matrix(self):
         self.assertIn('根号结束', speak_math(r'\sqrt{\frac{a^2}{b^2}}'))
@@ -89,7 +110,7 @@ class SpeechStructureTests(unittest.TestCase):
         self.assertNotIn('除以', clean_speech_text('BⅡ2000-F / BⅡ2000-S'))
         self.assertIn('或', clean_speech_text('BⅡ2000-F/S'))
         self.assertEqual(clean_speech_text('2-Φ24'), '2 个直径 24。')
-        self.assertEqual(clean_speech_text('10-20mm'), '10至20 毫米。')
+        self.assertEqual(clean_speech_text('10-20mm'), '10至20毫米。')
 
     def test_identifiers_are_not_litre_units(self):
         for source in ['∠50×50×6，L=2000，两件', '∠50×50×6，L = 2000，两件', '143237-07，A1/M1与L2～4', 'Φ610/620，t16，L115，Q345R']:
@@ -115,15 +136,30 @@ class SpeechStructureTests(unittest.TestCase):
         self.assertNotIn('====', spoken)
         self.assertNotIn('----', spoken)
         self.assertNotIn('等于', spoken)
-        self.assertIn('W 下标 m 二，下标结束', clean_speech_text(r'$W_{m2}$'))
-        self.assertNotIn('乘以 二，下标结束', clean_speech_text(r'$W_{m2}$'))
-        self.assertIn('直径 三千六百 毫米', clean_speech_text(r'$\Phi 3600\text{ mm}$'))
-        self.assertIn('R z 五十 至 八十 微米', clean_speech_text(r'$Rz\ 50 \sim 80\ \mu\text{m}$'))
-        self.assertIn('Ra 3点二 至 6点三 微米', clean_speech_text(r'$Ra\,3.2 \sim 6.3\,\mu\text{m}$'))
+        self.assertIn('W、m二', clean_speech_text(r'$W_{m2}$'))
+        self.assertNotIn('下标', clean_speech_text(r'$W_{m2}$'))
+        self.assertIn('直径 三千六百毫米', clean_speech_text(r'$\Phi 3600\text{ mm}$'))
+        self.assertIn('R z 五十 至 八十微米', clean_speech_text(r'$Rz\ 50 \sim 80\ \mu\text{m}$'))
+        self.assertIn('Ra 3点二 至 6点三微米', clean_speech_text(r'$Ra\,3.2 \sim 6.3\,\mu\text{m}$'))
         self.assertIn('派 乘以 G 乘以 m 乘以 P', clean_speech_text(r'$\pi G m P$'))
         self.assertIn('P 毫米', clean_speech_text(r'$P\text{ mm}$'))
-        self.assertIn('二点五 英寸', clean_speech_text(r'$\le 2.5"$'))
+        self.assertIn('二点五英寸', clean_speech_text(r'$\le 2.5"$'))
         self.assertIn('x = 1', clean_speech_text('```\nx = 1\n```'))
+
+    def test_natural_speech_from_manual_report_review(self):
+        self.assertEqual(clean_speech_text(r'$t_{\text{total}}$'), 't、total。')
+        self.assertIn('a、i 乘以 b', clean_speech_text(r'$a_i b$'))
+        fraction = clean_speech_text(r'$W_{m1}=\frac{\pi G^2 P}{4}+2b\pi GmP$')
+        self.assertIn('W、m一 等于 派 乘以 G 的平方 乘以 P，除以四，再加上 二 乘以 b', fraction)
+        self.assertNotIn('分子为', fraction)
+        self.assertNotIn('分式结束', fraction)
+        self.assertIn('下标', clean_speech_text(r'$a_{i+1}$'))
+        self.assertIn('下标', clean_speech_text(r'$a_i^2$'))
+        self.assertIn('下标', clean_speech_text(r'$\sigma_{\text{allow, rubber}}$'))
+        for source, expected in [('5mm', '5毫米。'), ('5 mm', '5毫米。'),
+                                 (r'$5\text{ mm}$', '五毫米。'), ('1.5 MPa', '1点五兆帕。')]:
+            with self.subTest(source=source):
+                self.assertEqual(clean_speech_text(source), expected)
 
 
 @unittest.skipUnless(PANDOC, 'Pandoc is required for native Word regression')

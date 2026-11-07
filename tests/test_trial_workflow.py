@@ -230,6 +230,17 @@ class AudioCacheTests(TrialFixture, unittest.TestCase):
         self.assertEqual(result['rebuilt'], ['docx'])
         self.assertEqual(result['reused'], ['mp3'])
 
+    def test_old_subscript_audio_is_rebuilt_then_the_new_audio_is_reused(self):
+        self.source.write_text(r'# Report' + '\n\n' + r'跨距 $L_{\text{span}}$。', encoding='utf-8')
+        with patch('clean_speech_text.clean_speech_text', return_value='跨距 L 下标 span，下标结束。'):
+            self.cached(engine='legacy')
+        upgraded = self.cached(engine='legacy')
+        self.assertEqual(upgraded['rebuilt'], ['mp3'])
+        self.assertEqual(upgraded['reused'], ['docx'])
+        following = self.cached(engine='legacy')
+        self.assertEqual(following['reused'], ['docx', 'mp3'])
+        self.assertEqual(self.calls, {'docx': 1, 'mp3': 2})
+
     def test_audio_failure_is_soft_only_when_requested_and_resume_reuses_word(self):
         def fail(*args):
             raise RuntimeError('https://user:secret@proxy.invalid/token')

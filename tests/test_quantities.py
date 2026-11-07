@@ -13,7 +13,7 @@ class QuantityTests(unittest.TestCase):
     def test_quantity_commas(self):
         for source in ('10,mm', '10，mm', '10, mm'):
             self.assertEqual(clean_inline_text(source), '10 mm')
-            self.assertEqual(clean_speech_text(source), '10 毫米。')
+            self.assertEqual(clean_speech_text(source), '10毫米。')
         self.assertEqual(clean_inline_text('10, apples; 21,120 mm'), '10, apples; 21,120 mm')
 
     def test_grouped_numbers(self):
@@ -30,7 +30,7 @@ class QuantityTests(unittest.TestCase):
         self.assertEqual(clean_inline_text('10,mm3; cm2; m^3; mm4'), '10 mm³; cm²; m³; mm⁴')
         self.assertEqual(clean_speech_text('N/mm2'), '牛 每 平方毫米。')
         self.assertEqual(clean_speech_text('kg/m3'), '千克 每 立方米。')
-        for source, expected in [('cm²', '平方厘米。'), ('km³', '立方千米。'), ('10mm²', '10 平方毫米。'), ('面积mm²', '面积 平方毫米。')]:
+        for source, expected in [('cm²', '平方厘米。'), ('km³', '立方千米。'), ('10mm²', '10平方毫米。'), ('面积mm²', '面积 平方毫米。')]:
             self.assertEqual(clean_speech_text(source), expected)
         for identifier in ('itemm²', 'itemm2', 'mm20', 'K3', 'S2', 'm2', 'unit_mm²', 'mm²_value'):
             self.assertEqual(clean_speech_text(identifier), identifier.replace('_', ' ') + '。')
@@ -38,7 +38,7 @@ class QuantityTests(unittest.TestCase):
 
     def test_imperial_rate_units(self):
         for unit, spoken in (("in/min", "分钟"), ("in./min", "分钟"), ("in/s", "秒"), ("in./s", "秒"), ("in/h", "小时"), ("in./h", "小时")):
-            self.assertEqual(clean_speech_text(f"焊接速度 10 {unit}"), f"焊接速度 10 英寸 每 {spoken}。")
+            self.assertEqual(clean_speech_text(f"焊接速度 10 {unit}"), f"焊接速度 10英寸 每 {spoken}。")
         for unit in ("J/in", "J/in."):
             self.assertEqual(clean_speech_text(unit), "焦 每 英寸。")
 

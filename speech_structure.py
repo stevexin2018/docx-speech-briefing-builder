@@ -107,8 +107,24 @@ def speak_math(latex):
 
     def script(node):
         if kind(node) == 'mrow':
-            return ' '.join(filter(None, (script(child) for child in node)))
+            children = list(node)
+            if children and all(kind(child) == 'mi' and child.get('mathvariant') == 'normal'
+                                and (child.text or '').isalpha() for child in children):
+                return ''.join(child.text for child in children)
+            return ' '.join(filter(None, (script(child) for child in children)))
         return visit(node)
+
+    def simple_subscript(base, subscript):
+        label = ''.join(subscript.itertext()).strip()
+        return (kind(base) == 'mi' and len(base.text or '') == 1
+                and bool(re.fullmatch(r'[A-Za-z0-9α-ωΑ-Ω]{1,16}', label)))
+
+    def grouped_sum(node):
+        return (kind(node) == 'mrow' and any(kind(child) == 'mo' and (child.text or '') in {'+', '-', '−'}
+                                             for child in node))
+
+    def compound(node):
+        return kind(node) == 'mrow' and len([child for child in node if kind(child) != 'mspace']) > 1
 
     def sequence(nodes):
         parts, previous, index = [], None, 0
@@ -131,6 +147,12 @@ def speak_math(latex):
                     left_number = any(kind(item) == 'mn' for item in nodes[max(0, index - 2):index])
                     right_number = any(kind(item) == 'mn' for item in nodes[index + 1:index + 3])
                     spoken = '至' if left_number and right_number else '相似于'
+            if (previous is not None and kind(previous) == 'mfrac' and kind(node) == 'mo'
+                    and (node.text or '') in {'+', '-', '−'}):
+                parts[-1] += '，' + ('再加上' if node.text == '+' else '再减去')
+                previous = node
+                index += 1
+                continue
             index += 1
             if not spoken:
                 continue
@@ -182,11 +204,24 @@ def speak_math(latex):
                 raise SpeechMathError("存在未支持的数学运算符，不能保证语音含义。")
             return OPERATORS[text]
         if tag == "mfrac" and len(children) == 2:
-            return f"分子为 {visit(children[0])}，除以分母 {visit(children[1])}，分式结束"
+            numerator, denominator = children
+            top = visit(numerator)
+            bottom = visit(denominator)
+            if grouped_sum(numerator):
+                top = '括号里的 ' + top
+            if compound(denominator):
+                bottom = '括号里的 ' + bottom
+            pause = '，' if compound(numerator) else ''
+            return f"{top}{pause}除以{bottom}"
         if tag in {"msub", "msup", "msubsup"}:
             base = visit(children[0])
             if tag in {"msub", "msubsup"}:
-                base += f" 下标 {script(children[1])}，下标结束"
+                label = script(children[1])
+                if tag == 'msub' and simple_subscript(children[0], children[1]):
+                    label = re.sub(r'(?<=[A-Za-z]) (?=[零一二三四五六七八九十])', '', label)
+                    base += f'、{label}'
+                else:
+                    base += f' 下标 {label}'
             if tag in {"msup", "msubsup"}:
                 power = children[-1]
                 value = "".join(power.itertext()).strip()

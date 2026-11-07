@@ -1,6 +1,6 @@
 # docx-speech-briefing-builder
 
-**稳定版 / Stable:** [v2.0.4](https://github.com/stevexin2018/docx-speech-briefing-builder/releases/tag/v2.0.4) · [Release notes](docs/release-v2.0.4.md)
+**稳定版 / Stable:** [v2.0.5](https://github.com/stevexin2018/docx-speech-briefing-builder/releases/tag/v2.0.5) · [Release notes](docs/release-v2.0.5.md)
 
 All Word CLI and Python entry points now default to the native Pandoc engine. The cached workflow is recommended for automatic records. Use `--engine legacy` only when compatibility rendering is explicitly needed.
 
@@ -33,6 +33,13 @@ The v2.0.2 speech parser handles common angle, spaced temperature, and star-supe
 v2.0.3 converts labelled ASCII section sketches into readable paragraphs, omits their decorative rules from Word and narration, and improves script, dimension and unit speech. An inch mark after a number inside explicit math is normalized to an inch unit before native Word conversion. Ordinary code blocks remain literal.
 
 v2.0.4 preserves the pre-existing roughness-range pronunciation when the new micrometer normalization is enabled. It passes the ARM managed-update regression gate.
+
+v2.0.5 brings the manually reviewed natural-speech changes into the daily engine:
+simple subscripts use a short pause (`L、span`, `W、m二`), fractions retain grouping
+without mechanical closing phrases, and quantities stay joined to spoken units.
+Web-address slashes are protected from division rules. Changed speech code
+invalidates cached narration; an existing MP3 must be regenerated to change its
+pronunciation. Review videos retain their input audio.
 
 See [the v2 engine guide](docs/v2-engine.md) for source conventions, diagnostics, custom Word references, and regression tests. Full LaTeX packages, automatic equation numbering, and interpretation of math written as code remain outside the supported scope.
 

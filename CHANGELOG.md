@@ -1,3 +1,31 @@
+## [2.0.5] - 2026-11-08
+
+- Merge the previously reviewed rc1/rc2 speech changes into the daily main engine
+  so Windows and ARM no longer silently use the older subscript/fraction style.
+- Retain web-address protection: `poyo.ai/hub/2026` uses address separators,
+  while arithmetic, fractions, engineering units and literal code keep their rules.
+- Add daily-report subscript and stale-audio-cache regressions. Existing MP3s
+  and review videos remain unchanged until explicitly regenerated.
+- Make the compatibility test entry share the complete managed-deployment
+  harness, including the reviewed speech style and existing engineering checks.
+
+## [2.0.5rc2] - 2026-11-01 (preview)
+
+- Read simple subscripts with a short prosodic separator instead of saying
+  "subscript", e.g. `W_{m2}` as `W、m二`. Keep explicit structure for compound
+  subscripts and simultaneous subscript/superscript expressions.
+- Await manual listening before a stable release or production deployment.
+
+## [2.0.5rc1] - 2026-10-31 (preview)
+
+- Remove mechanical subscript and fraction closing phrases from engineering
+  narration. Keep explicit grouping for compound denominators and transitions
+  after fractions.
+- Join numeric quantities with spoken unit names to avoid audible pauses.
+- Preserve word-like `\\mathrm{slot}` subscripts as words rather than reading
+  a leading `s` as the seconds unit.
+- Await manual listening before a stable release or production deployment.
+
 ## [2.0.4] - 2026-10-30
 
 - Preserve the established `Ra 3.2 to 6.3 micrometers` narration rule before
