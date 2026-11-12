@@ -2,7 +2,7 @@
 name: docx-speech-briefing-builder
 metadata:
   version: "2.0.5"
-  updated: "2026-11-08"
+  updated: "2026-11-13"
 description: 将 Markdown 深度工程报告自动转换为排版 Word 文档 (.docx) 与正常语速高品质语音讲解音频 (.mp3)。核心引擎已完全独立解耦至独立仓库 (https://github.com/stevexin2018/docx-speech-briefing-builder)。
 ---
 
@@ -43,7 +43,7 @@ v2.0.4 保留既有的 `Ra\,3.2 \sim 6.3\,\mu\text{m}` 等粗糙度区间优先�
 
 v2.0.5 将已试听通过的 rc1/rc2 读法合入日常入口：简单下标用短暂停顿，例如 `$L_{\text{span}}$` 读为“L、span”，`$W_{m2}$` 读为“W、m二”；不再朗读“下标结束”。分式使用“除以”与必要的括号范围，不朗读“分子为／分式结束”；数值与计量单位相连。含运算的复杂下标或同时有上下标时保留明确提示，避免含义混淆。
 
-网址中的正斜杠按地址分隔符读“斜杠”，如 `poyo.ai/hub/2026`，不能误读为“除以”；数学除法、分数和计量单位仍沿用各自规则。旧音频不因升级自动改变，需从原稿重新生成。检查生成记录中的 `core_version`、语音代码指纹与 `rebuilt/reused`；仅制作校核视频会保留输入 MP3 的原读法。
+网址采用自然朗读：省略 `http://`、`https://`，正斜杠 `/` 转为逗号短暂停顿，连接号 `-` 与下划线 `_` 转为词间空格，不逐个读“斜杠”“连接号”“下划线”。例如 `poyo.ai/hub/2026` 读为“poyo 点 ai，hub，2026”，网址中的 `gpu-unlock` 与 `gpu_unlock` 均读为“gpu unlock”；域名与文件扩展名的点保留读“点”。查询参数、锚点同样保护，避免把地址当数学式处理。此规则只适用于已识别的网址和明确的年份地址片段；数学除法、分数、计量单位、标准号和普通代码仍沿用各自规则。需要逐字说明字符时，在讲解稿中写明字符名称。旧音频不因升级自动改变，需从原稿重新生成；音频缓存的语音指纹会使旧读法失效。仅制作校核视频会保留输入 MP3 的原读法。
 
 记录 schema 2：`build_contract_passed` 仅表示技术构建通过，`ready_for_delivery` 为兼容字段。`review_required=true`、`manual_review_required=true` 和 `fully_accepted=false` 如实保留人工验收状态；`acceptance.visual`、`listening` 不自动标成已完成，工程状态为 `not_assessed`。不得将 `status=success` 当成逐页验收、语音试听或设备安全放行。
 

@@ -1,3 +1,15 @@
+## [Unreleased]
+
+- Read web-address slashes as short pauses and hyphens/underscores as word
+  boundaries instead of spelling separator names. Preserve spoken dots and the
+  exact original address in Word and source text.
+- Protect query strings and fragments directly after a hostname, including
+  inline-code addresses, before prose and mathematical cleanup.
+- Recognize inline HTTP(S) addresses before Windows paths, and preserve angle
+  autolinks that previously disappeared during HTML cleanup.
+- Cover the reported GitHub source URL, mathematical/identifier isolation and
+  regeneration of previously cached separator-spelling audio.
+
 ## [2.0.5] - 2026-11-08
 
 - Merge the previously reviewed rc1/rc2 speech changes into the daily main engine

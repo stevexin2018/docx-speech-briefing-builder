@@ -241,6 +241,21 @@ class AudioCacheTests(TrialFixture, unittest.TestCase):
         self.assertEqual(following['reused'], ['docx', 'mp3'])
         self.assertEqual(self.calls, {'docx': 1, 'mp3': 2})
 
+    def test_old_spelled_url_audio_is_rebuilt_then_reused(self):
+        self.source.write_text(
+            '# Report\n\nhttps://github.com/Zagitta/gpu-unlock/gpu_unlock/recipes.c',
+            encoding='utf-8')
+        with patch('clean_speech_text.clean_speech_text', return_value=(
+                'github 点 com 斜杠 Zagitta 斜杠 gpu 连接号 unlock '
+                '斜杠 gpu 下划线 unlock 斜杠 recipes 点 c。')):
+            self.cached(engine='legacy')
+        upgraded = self.cached(engine='legacy')
+        self.assertEqual(upgraded['rebuilt'], ['mp3'])
+        self.assertEqual(upgraded['reused'], ['docx'])
+        following = self.cached(engine='legacy')
+        self.assertEqual(following['reused'], ['docx', 'mp3'])
+        self.assertEqual(self.calls, {'docx': 1, 'mp3': 2})
+
     def test_audio_failure_is_soft_only_when_requested_and_resume_reuses_word(self):
         def fail(*args):
             raise RuntimeError('https://user:secret@proxy.invalid/token')

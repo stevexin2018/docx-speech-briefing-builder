@@ -39,18 +39,20 @@ UNITS = {"m": "米", "mm": "毫米", "cm": "厘米", "in": "英寸", "μm": "微
 # Require a scheme or a real-looking hostname, never a numeric decimal.
 # ASCII URL characters stop before adjacent Chinese prose and Markdown wrappers.
 _WEB_HOST = r"(?:[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?\.)+[A-Za-z]{2,24}"
-_WEB_TAIL = r"(?:/[A-Za-z0-9._~%!$&*+,;=:@/?#-]*)?"
+_WEB_TAIL = r"(?:[/?#][A-Za-z0-9._~%!$&*+,;=:@/?#-]*)?"
 _WEB_ADDRESS = re.compile(
     r"(?<![A-Za-z0-9_@./\\])(?:https?://[A-Za-z0-9.-]+|"
     + _WEB_HOST + r")(?::\d{1,5})?" + _WEB_TAIL, re.I)
 
 
 def _speak_web_address(value):
+    """Use natural word/path pauses; the document retains the exact address."""
     value = re.sub(r"^https?://", "", value, flags=re.I)
-    names = {"/": " 斜杠 ", ".": " 点 ", "_": " 下划线 ", "-": " 连接号 ",
+    names = {"/": "，", ".": " 点 ", "_": " ", "-": " ",
              "?": " 问号 ", "&": " 与 ", "=": " 等号 ", "#": " 井号 ",
              "%": " 百分号 ", ":": " 冒号 ", "@": " at ", "+": " 加号 "}
-    return "".join(names.get(char, char) for char in value)
+    spoken = "".join(names.get(char, char) for char in value)
+    return re.sub(r"(?:\s*，\s*)+", "，", spoken).strip(" ，")
 
 
 def _number(text):
@@ -285,10 +287,10 @@ def protect_structure(text, path_speaker):
             rows = schematic_rows(value)
             if rows is not None:
                 return '\n'.join(rows)
-        if re.search(r"(?:[A-Za-z]:[\\/]|\\\\|HKLM:|HKCU:)", value):
-            return save(path_speaker(value))
         if not fenced and _WEB_ADDRESS.fullmatch(value):
             return save(_speak_web_address(value))
+        if re.search(r"(?:[A-Za-z]:[\\/]|\\\\|HKLM:|HKCU:)", value):
+            return save(path_speaker(value))
         return save(value.replace("\\", " 反斜杠 ").replace("_", " 下划线 "))
     text = re.sub(r"(?ms)^\s*(`{3,}|~{3,})[^\n]*\n.*?^\s*\1\s*$|`+[^`\n]+`+", code, text)
     bare_path = r'''(?<![A-Za-z0-9_])(?:[A-Za-z]:[\\/]|(?:HKLM|HKCU|HKEY_[A-Z_]+):[\\/]|\\\\[A-Za-z0-9_.-]+[\\/])[^\s，。！？；：、`"'<>\[\]{}()]+'''
@@ -305,6 +307,11 @@ def protect_structure(text, path_speaker):
 
     # Protect addresses before units, fractions and bare arithmetic are parsed.
     # Explicit math and code have already been guarded above.
+    # Guard angle autolinks as a whole: <SPEECHGUARD...> would look like an
+    # HTML tag to the prose cleaner and silently drop the entire address.
+    text = re.sub(r"<([^<>\s]+)>",
+                  lambda m: save(_speak_web_address(m[1]))
+                  if _WEB_ADDRESS.fullmatch(m[1]) else m[0], text)
     text = _WEB_ADDRESS.sub(web_address, text)
     # Year-based relative web paths (hub/2026) are also address fragments.
     # Do not classify arbitrary a/b, D/t, kJ/mm or standard numbers as paths.
