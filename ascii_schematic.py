@@ -86,6 +86,10 @@ def _assembly_rows(lines):
         value = _BOX_EDGE.sub("  ", value)
         value = _BOX_STROKES.sub("  ", value)
         value = _FILL.sub("  ", value)
+        # Multiple branches and inline arrows also carry direction, not the
+        # Unicode glyph's name (for example, "black down-pointing triangle").
+        value = re.sub("[" + re.escape("".join(_DIRECTION)) + "]",
+                       lambda m: " " + _DIRECTION[m[0]] + " ", value)
         # Residual junctions belong to drawing runs; ordinary '+' in labels,
         # material identifiers, dimensions and negative numbers stay intact.
         value = re.sub(r"(?<!\S)\+(?!\S)", "  ", value)

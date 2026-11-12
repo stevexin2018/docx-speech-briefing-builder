@@ -1,5 +1,11 @@
 ## [Unreleased]
 
+- Separate Word and speech skills and format-specific CLI/Python interfaces.
+  Keep shared parsers/cache and compatible legacy calls; add speech preflight
+  that blocks unclassified drawing borders before TTS.
+- Distribute the two skill packages without nested duplicate discovery and test
+  independent output selection, audio caching and preservation of other files.
+
 - Normalize labelled Chinese assembly sketches with box edges, vertical bars,
   hatch fills and Unicode borders in Word and speech, including fenced and
   indented input. Retain dimensions, material identifiers, warnings, repeated

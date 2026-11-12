@@ -50,6 +50,18 @@ class SchematicTests(unittest.TestCase):
         self.assertEqual(schematic_rows("+----------+\n|          |\n+----------+"), [])
         self.assertEqual(clean_speech_text("```\n+----------+\n+----------+\n```"), "")
 
+    def test_branched_flow_arrows_are_spoken_as_directions(self):
+        source = ("┌────────┐\n│ 设计 │────▶│ 检验 │\n└────────┘\n"
+                  "      ▼                   ▼\n"
+                  "┌────────┐\n│ 制造 │\n└────────┘")
+        rows = schematic_rows(source)
+        text = "\n".join(rows)
+        self.assertNotRegex(text, r"[\u2500-\u257f▲▼▶◀]")
+        self.assertIn("向右", text)
+        self.assertEqual(text.count("向下"), 2)
+        spoken = clean_speech_text("```\n" + source + "\n```")
+        self.assertNotRegex(spoken, r"[\u2500-\u257f▲▼▶◀]")
+
     def test_word_and_speech_recognize_fenced_and_indented_sketches(self):
         for source in ["```text\n" + ASSEMBLY + "\n```",
                        "~~~text\n" + ASSEMBLY + "\n~~~",
