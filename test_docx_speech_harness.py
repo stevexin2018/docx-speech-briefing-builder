@@ -74,6 +74,9 @@ def test_speech_cleaning():
     assert 'hub，2026' in clean_speech_text('poyo.ai/hub/2026')
     assert clean_speech_text('https://github.com/Zagitta/gpu-unlock/gpu_unlock/recipes.c') == (
         'github 点 com，Zagitta，gpu unlock，gpu unlock，recipes 点 c。')
+    sketch = clean_speech_text('```text\n螺柱 M12  +---------------------+  螺柱 M12\n```')
+    assert sketch == '螺柱 M12；螺柱 M12。'
+    assert 'x = a - b' in clean_speech_text('```python\nx = a - b\n```')
     cleaned = clean_speech_text(SAMPLE_MARKDOWN)
     print("\n--- [TTS 清洗结果验证] ---")
     print(cleaned)

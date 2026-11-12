@@ -1,5 +1,12 @@
 ## [Unreleased]
 
+- Normalize labelled Chinese assembly sketches with box edges, vertical bars,
+  hatch fills and Unicode borders in Word and speech, including fenced and
+  indented input. Retain dimensions, material identifiers, warnings, repeated
+  component labels and direction annotations. Preserve explicit program blocks.
+- Remove purely decorative drawing blocks and cover the reported M12 connector
+  row, full source-code diagrams and speech-cache invalidation.
+
 - Read web-address slashes as short pauses and hyphens/underscores as word
   boundaries instead of spelling separator names. Preserve spoken dots and the
   exact original address in Word and source text.

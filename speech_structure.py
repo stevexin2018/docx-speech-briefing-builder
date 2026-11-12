@@ -282,17 +282,29 @@ def protect_structure(text, path_speaker):
     def code(match):
         value = match[0].strip()
         fenced = value.startswith(("```", "~~~"))
-        value = "\n".join(value.splitlines()[1:-1]) if fenced else value.strip("`")
         if fenced:
-            rows = schematic_rows(value)
+            lines = value.splitlines()
+            opening = re.match(r"[`~]{3,}\s*([A-Za-z0-9_+-]*)", lines[0])
+            language = opening[1] if opening else ""
+            value = "\n".join(lines[1:-1])
+            rows = schematic_rows(value, language)
             if rows is not None:
                 return '\n'.join(rows)
+        else:
+            value = value.strip("`")
         if not fenced and _WEB_ADDRESS.fullmatch(value):
             return save(_speak_web_address(value))
         if re.search(r"(?:[A-Za-z]:[\\/]|\\\\|HKLM:|HKCU:)", value):
             return save(path_speaker(value))
         return save(value.replace("\\", " 反斜杠 ").replace("_", " 下划线 "))
     text = re.sub(r"(?ms)^\s*(`{3,}|~{3,})[^\n]*\n.*?^\s*\1\s*$|`+[^`\n]+`+", code, text)
+    # Pandoc also recognizes four-space/tab-indented sketches as code blocks.
+    # Transform only recognized drawings here; leave other indented prose/code
+    # on its existing path rather than protecting or rewriting it globally.
+    def indented_sketch(match):
+        rows = schematic_rows(match[0])
+        return "\n".join(rows) + "\n" if rows is not None else match[0]
+    text = re.sub(r"(?m)(?:(?: {4}|\t)[^\n]*(?:\n|$))+", indented_sketch, text)
     bare_path = r'''(?<![A-Za-z0-9_])(?:[A-Za-z]:[\\/]|(?:HKLM|HKCU|HKEY_[A-Z_]+):[\\/]|\\\\[A-Za-z0-9_.-]+[\\/])[^\s，。！？；：、`"'<>\[\]{}()]+'''
     text = re.sub(bare_path, lambda m: save(path_speaker(m[0])), text)
     pattern = (r"\$\$(.*?)\$\$|\\\[(.*?)\\\]|\\\((.*?)\\\)|"

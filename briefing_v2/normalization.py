@@ -95,10 +95,11 @@ def normalize_ast(ast, source, source_name="<markdown>"):
         if kind:
             counts[kind] += 1
         if kind == "CodeBlock":
-            rows = schematic_rows(value["c"][1])
+            classes = value["c"][0][1]
+            rows = schematic_rows(value["c"][1], classes[0] if classes else "")
             if rows is not None:
                 changes += 1
-                add("ASCII_SCHEMATIC_NORMALIZED", "info", "剖面示意图已转为文字层次，移除装饰线。", value["c"][1], pointer)
+                add("ASCII_SCHEMATIC_NORMALIZED", "info", "剖面或装配示意图已转为顺序文字，保留标注并移除绘图线。", value["c"][1], pointer)
                 return [{"t": "Para", "c": [{"t": "Str", "c": row}]} for row in rows]
         if kind in {"Code", "CodeBlock"}:
             text = value["c"][1]
