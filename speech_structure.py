@@ -1,5 +1,6 @@
 """Parse mathematical structure before the compatibility prose cleaner runs."""
 import re
+import os
 import xml.etree.ElementTree as ET
 from engineering_text import cardinal_cn
 from ascii_schematic import schematic_rows
@@ -64,8 +65,12 @@ def _number(text):
     raise SpeechMathError("无法口述此数学数字。")
 
 
-def speak_math(latex):
-    """Speak supported TeX through MathML, preserving explicit group boundaries."""
+def speak_math(latex, *, mode='smart', seen_subscripts=None):
+    """Read MathML with natural smart or fully explicit strict subscript policy."""
+    if mode not in ('smart','strict'):
+        raise ValueError('math mode must be smart or strict')
+    if seen_subscripts is None:
+        seen_subscripts = set()
     # A spacing command immediately before the degree superscript belongs to
     # the preceding number, not to the superscript's base in MathML.
     latex = re.sub(r'(?<=[0-9}])\\(?:\s|,|;|:|!)(?=\s*\^\s*\{?\\circ)', '', latex)
@@ -166,7 +171,11 @@ def speak_math(latex):
             identifier_suffix = previous is not None and kind(previous) == 'mi' and kind(node) == 'mn'
             identifier_name = (previous is not None and kind(previous) == 'mi' and kind(node) == 'mi'
                                and (previous.text or '') + (node.text or '') in {'Ra', 'Rz', 'Ry', 'Rq', 'Sa', 'Sz'})
+            contains_or = any(kind(element) == 'mtext' and
+                              (element.text or '').strip() in ('或','或者') for element in node.iter())
             if (previous is not None and not operator(previous) and kind(previous) != 'mspace'
+                    and (previous.text or '').strip() not in ('或','或者')
+                    and not contains_or
                     and not operator(node) and kind(node) != 'mspace' and (previous.text or "") not in FUNCTIONS
                     and not is_connector and not previous_connector and not text_unit
                     and not identifier_suffix and not identifier_name):
@@ -214,14 +223,31 @@ def speak_math(latex):
             if compound(denominator):
                 bottom = '括号里的 ' + bottom
             pause = '，' if compound(numerator) else ''
+            def whole_integer(part):
+                while kind(part) == 'mrow' and len(part) == 1:
+                    part = list(part)[0]
+                return (part.text or '') if kind(part) == 'mn' and (part.text or '').isdigit() else None
+            n, d = whole_integer(numerator), whole_integer(denominator)
+            if n is not None and d is not None:
+                if int(d) == 0:
+                    raise SpeechMathError('分母不能为零，停止语音生成。')
+                return f"{_number(d)}分之{_number(n)}"
             return f"{top}{pause}除以{bottom}"
         if tag in {"msub", "msup", "msubsup"}:
             base = visit(children[0])
             if tag in {"msub", "msubsup"}:
                 label = script(children[1])
-                if tag == 'msub' and simple_subscript(children[0], children[1]):
+                if tag == 'msub':
+                    key = (base,label)
+                    raw_label = ''.join(children[1].itertext()).strip()
+                    numeric_identifier = raw_label.isdigit() and len(raw_label) > 1
+                    simple = simple_subscript(children[0], children[1]) and not numeric_identifier
+                    can_shorten = (not numeric_identifier and
+                        bool(re.fullmatch(r'[A-Za-z0-9.α-ωΑ-Ω零一二三四五六七八九十百点\s]{1,24}', label)))
+                    short_pause = mode == 'smart' and (simple or (can_shorten and key in seen_subscripts))
                     label = re.sub(r'(?<=[A-Za-z]) (?=[零一二三四五六七八九十])', '', label)
-                    base += f'、{label}'
+                    base += ('、' if short_pause else ' 下标 ') + label
+                    seen_subscripts.add(key)
                 else:
                     base += f' 下标 {label}'
             if tag in {"msup", "msubsup"}:
@@ -263,6 +289,10 @@ def speak_math(latex):
 
 def protect_structure(text, path_speaker):
     """Return guarded prose and a restorer; placeholders contain no numbers."""
+    mode = os.environ.get('ENGINEERING_MATH_SPEECH_MODE','smart').strip().lower()
+    if mode not in ('smart','strict'):
+        raise SpeechMathError('Unsupported math speech mode; use smart or strict')
+    seen_subscripts = set()
     vault, prefix = {}, "SPEECHGUARD"
     while prefix in text:
         prefix += "Q"
@@ -309,7 +339,8 @@ def protect_structure(text, path_speaker):
     text = re.sub(bare_path, lambda m: save(path_speaker(m[0])), text)
     pattern = (r"\$\$(.*?)\$\$|\\\[(.*?)\\\]|\\\((.*?)\\\)|"
                r"(?<![\\$])\$(?![$\s])([^\n$]+?)(?<!\s)\$(?![$\d])")
-    text = re.sub(pattern, lambda m: save(speak_math(next(g for g in m.groups() if g is not None))), text, flags=re.S)
+    text = re.sub(pattern, lambda m: save(speak_math(next(g for g in m.groups() if g is not None),
+                                     mode=mode, seen_subscripts=seen_subscripts)), text, flags=re.S)
     if "$$" in text or r"\[" in text or r"\(" in text:
         raise SpeechMathError("数学定界符未闭合；已有音频保留。")
 
@@ -337,7 +368,7 @@ def protect_structure(text, path_speaker):
         expression = match[1]
         if not re.search(r'[·⋅×/^()]', expression) or re.search(r'[A-Za-zα-ωΑ-Ω]\d', expression):
             return match[0]
-        return save(speak_math(expression)) + (match[2] or '')
+        return save(speak_math(expression, mode=mode, seen_subscripts=seen_subscripts)) + (match[2] or '')
     text = re.sub(r"(?m)^\s*([A-Za-zα-ωΑ-Ω][A-Za-z0-9_α-ωΑ-Ω]*\s*[=≈]\s*[^\n。；]+)([。；]?)\s*$",
                   plain_formula, text)
 

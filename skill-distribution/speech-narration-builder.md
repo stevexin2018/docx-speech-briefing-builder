@@ -2,7 +2,7 @@
 name: speech-narration-builder
 description: 独立预检工程原稿的朗读文本并生成正常语速 MP3，处理公式、下标、数值单位、网址及绘图符号的读法；不生成或修改 Word。
 metadata:
-  version: "1.0.0"
+  version: "1.1.0"
 ---
 
 # 独立语音预处理与 MP3
@@ -41,3 +41,12 @@ Windows 使用 `C:/Python314/python.exe`；MP3 默认交付到 `D:/IDM下载`，
 共享数学解析和音频缓存，不复制引擎；音频单独失败可重试，保留已有 Word。
 宿主按既有约定备份，并在同源 Word/MP3 齐备后自动提交校核视频。
 Telegram 发送交给现有交付技能；本技能不发消息、不重新渲染视频。
+
+
+## 智能混合公式朗读（1.1.0）
+默认 --math-mode smart：简单下标短停顿，复杂下标首次明确读“下标”、
+重复时在明确可读条件下简化；纯整数分式使用“分之”表达。
+--math-mode strict 可强制所有下标显式读出。先用
+python scripts/build.py --input SOURCE.md --preview --math-mode smart
+检查全部公式，再按同一模式生成 MP3。短停顿是标点语气，实际时长随 TTS 不同。
+不要修改 Word 原公式，不要自动重新生成或覆盖已有 MP3。

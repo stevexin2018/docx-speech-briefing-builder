@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Standalone speech preflight and MP3 entry; never produces a Word file."""
 import argparse
+import os
 from briefing_products import build_speech_audio, preview_speech, print_result
 from briefing_workflow import CachedBuildError
 from version import __version__
@@ -21,7 +22,10 @@ def main(argv=None):
     p.add_argument("--record-dir")
     p.add_argument("--allow-literal-code", action="store_true")
     p.add_argument("--cloud-archive", action="store_true")
+    p.add_argument("--math-mode", choices=("smart","strict"), default="smart",
+                   help="Formula reading: natural smart (default) or explicit strict")
     a = p.parse_args(argv)
+    os.environ['ENGINEERING_MATH_SPEECH_MODE'] = a.math_mode
     try:
         if a.preview:
             print(preview_speech(a.input, allow_literal_code=a.allow_literal_code))

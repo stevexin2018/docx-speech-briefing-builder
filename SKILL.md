@@ -2,7 +2,7 @@
 name: docx-speech-briefing-builder
 description: Word 与语音旧调用的兼容协调入口；Word 排版交给 word-report-builder，朗读预处理及 MP3 交给 speech-narration-builder。共享核心解析、缓存和宿主归档。
 metadata:
-  version: "2.0.5"
+  version: "2.1.0"
   updated: "2026-11-13"
 ---
 
@@ -36,3 +36,11 @@ Word 和音频，不重新 TTS。Telegram 交付遵循 `telegram-briefing-delive
 Windows 的核心和交付位置见现有
 [宿主说明](references/codex-shared-usage.md)；ARM 不硬编码 Windows 路径。
 记录中的语音代码指纹会使旧读法缓存失效，但不会自动修改已经交付的 MP3。
+
+
+## 工程数学智能混合朗读（2.1.0）
+仅影响语音解析，不更改 Word 公式或旧有音频。默认 smart：简单下标以顿号产生短停顿，
+复杂下标第一次明确读“下标”，后续重复时在无歧义情况下缩短；复合上下标始终明确读法。
+纯整数分式如 2/3 读“三分之二”，变量分式保留“除以”以避免数学歧义。
+独立语音入口可选 --math-mode strict 对全部下标采用严格读法，试听前必须运行 --preview。
+实际停顿由 TTS 音色决定，不能保证精确毫秒；失败时保持原始 MP3 不变。
